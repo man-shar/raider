@@ -1,5 +1,6 @@
 import { ChatMessageType, MessageDetails } from '@types'
 import systemPrompt from './prompts/basic-sys.txt?raw'
+import userPrompt from './prompts/basic-user.txt?raw'
 import OpenAI from 'openai'
 import { BrowserWindow } from 'electron'
 
@@ -32,7 +33,9 @@ export function startOaiChat({ userInput, highlightedText }: MessageDetails): Ch
     },
     {
       role: 'user',
-      content: `The highlighted text is: ${highlightedText}\n\nThe user's question is: ${userInput}`
+      content: userPrompt
+        .replace('{userInput}', userInput)
+        .replace('{highlightedText}', highlightedText)
     }
   ]
   const mainWindowId = parseInt(process.env['MAIN_WINDOW_ID']!)

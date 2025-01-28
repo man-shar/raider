@@ -1,0 +1,6 @@
+The highlighted text is:
+```
+{highlightedText}
+```
+
+The user's question is: {userInput}
