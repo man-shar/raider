@@ -1,18 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Document, Page } from 'react-pdf'
-
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { PDFFile } from '@types'
 import LinkService from 'react-pdf/src/LinkService.js'
 import { ScrollPageIntoViewArgs } from 'react-pdf/src/shared/types.js'
 import { Command, CornerDownLeft } from 'lucide-react'
-import { createPortal } from 'react-dom'
 import { IFrame } from './Iframe'
-
-const options = {
-  cMapUrl: '/cmaps/',
-  standardFontDataUrl: '/standard_fonts/'
-}
+import { AppContext } from '@renderer/context/AppContext'
+import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -25,6 +20,11 @@ interface DocumentRef {
 export function PDFViewer({ file }: { file: PDFFile }) {
   const [numPages, setNumPages] = useState<number>()
 
+  const options = useRef({
+    cMapUrl: '/cmaps/',
+    standardFontDataUrl: '/standard_fonts/'
+  })
+
   const onDocumentLoadSuccess = useCallback((pdf: PDFDocumentProxy) => {
     setNumPages(pdf.numPages)
   }, [])
@@ -33,55 +33,83 @@ export function PDFViewer({ file }: { file: PDFFile }) {
   const tooltipRef = useRef<HTMLDivElement>(null)
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-
   const documentRef = useRef<DocumentRef>(null)
 
-  useEffect(() => {
-    // on text selection on this dom element, console log
-    const handleSelectionChange = (e) => {
+  const { chatManager } = useContext(AppContext)
+  const message = useContext(MessageManagerContext)
+
+  // on text selection on this dom element, console log
+  const handleSelectionChange = useCallback(
+    (e) => {
       // get selection location on the browser window
       // and log it
       if (!tooltipRef.current || !iframeRef.current || !ctrRef.current) return
+      iframeRef.current.style.opacity = '0'
 
       const selection = document.getSelection()
       if (!selection || selection.toString() === '') {
-        tooltipRef.current.style.opacity = '0'
         return
       }
 
       const range = selection.getRangeAt(0)
       const clientRects = range.getClientRects()
+      const ctrRect = ctrRef.current?.getBoundingClientRect()
 
       // set tooltip position
-      iframeRef.current.style.top = `${clientRects[0].top - iframeRef.current.offsetHeight - 10}px`
+      iframeRef.current.style.opacity = '1'
+      iframeRef.current.style.top = `${clientRects[0].top - ctrRect?.top - iframeRef.current.offsetHeight - 10}px`
+      iframeRef.current.style.left = `${clientRects[0].left - ctrRect?.left}px`
+    },
+    [chatManager]
+  )
 
-      console.log(range, clientRects[0])
-
-      tooltipRef.current.style.left = `${(clientRects[0].left * 100) / ctrRef.current?.offsetWidth}%`
-      tooltipRef.current.style.opacity = '1'
-    }
-
-    document.addEventListener('mouseup', handleSelectionChange)
-
-    // detect ctrl enter keypress
-    const handleKeyPress = (e: KeyboardEvent) => {
+  // detect ctrl enter keypress
+  const handleKeyPress = useCallback(
+    (e: KeyboardEvent) => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         const selection = document.getSelection()
-
-        console.log('Ctrl+Enter pressed', selection?.toString())
-        if (!selection || selection.toString() === '') {
+        if (
+          !selection ||
+          selection.toString() === '' ||
+          !textAreaRef.current ||
+          !textAreaRef.current.value ||
+          !iframeRef.current
+        ) {
+          message.error('Either empty message or no text selected.')
           return
         }
 
-        // get this text, and send chat message
-        window.chat.sendChatMessage(selection.toString())
+        try {
+          // get this text, and send chat message
+          chatManager
+            .sendChatMessage({
+              userInput: textAreaRef.current?.value,
+              highlightedText: selection.toString()
+            })
+            .catch((error) => {
+              message.error('Error sending message:' + error)
+            })
+        } catch (error) {
+          message.error('Error sending message:' + error)
+        } finally {
+          // reset textarea
+          textAreaRef.current.value = ''
+          // hide tooltip
+          iframeRef.current.style.opacity = '0'
+        }
       }
-    }
-    document.addEventListener('keydown', handleKeyPress)
+    },
+    [chatManager]
+  )
+
+  useEffect(() => {
+    // then add them back
+    document.addEventListener('mouseup', handleSelectionChange)
+    iframeRef.current?.contentDocument?.addEventListener('keydown', handleKeyPress)
 
     return () => {
       document.removeEventListener('mouseup', handleSelectionChange)
-      document.removeEventListener('keydown', handleKeyPress)
+      iframeRef.current?.contentDocument?.removeEventListener('keydown', handleKeyPress)
     }
   }, [])
 
@@ -89,18 +117,18 @@ export function PDFViewer({ file }: { file: PDFFile }) {
     <div ref={ctrRef}>
       <IFrame
         ref={iframeRef}
+        className="w-96"
         style={{
           opacity: 0,
           position: 'absolute',
           left: 0,
-          width: '100%',
           height: '82px',
           zIndex: 100
         }}
       >
         <div
           ref={tooltipRef}
-          className="tooltip absolute rounded-md overflow-hidden bg-white text-xs shadow border border-lime-300 text-lime-500 z-100 w-96"
+          className="tooltip absolute rounded-md overflow-hidden bg-white text-xs shadow border border-lime-300 text-lime-500 z-100 w-full"
           onMouseUp={(e) => {
             e.stopPropagation()
             e.preventDefault()
@@ -133,9 +161,9 @@ export function PDFViewer({ file }: { file: PDFFile }) {
       </IFrame>
       <Document
         ref={documentRef}
-        file={file.file}
+        file={file.buf}
         onLoadSuccess={onDocumentLoadSuccess}
-        options={options}
+        options={options.current}
         className="pdf-document"
         renderMode="canvas"
       >

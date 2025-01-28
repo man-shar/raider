@@ -1,12 +1,21 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { ChatAPI, ChatMessage } from '../types'
+import { ChatAPI, ChatMessageType, MessageDetails } from '../types'
 
 // Custom APIs for renderer
 const chat: ChatAPI = {
   // Add chat-related methods
-  sendChatMessage: (message: string): Promise<ChatMessage> =>
-    ipcRenderer.invoke('chat:send-message', message)
+  sendChatMessage: (details: MessageDetails): Promise<ChatMessageType> => {
+    return ipcRenderer.invoke('chat:send-message', details)
+  },
+
+  onChunkReceived: (messageId: string, callback: (chunk: string) => void) => {
+    const eventTargetRef = ipcRenderer.on(messageId, (_event, value) => callback(value))
+
+    return () => {
+      eventTargetRef.removeAllListeners(messageId)
+    }
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
