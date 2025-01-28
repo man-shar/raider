@@ -40,7 +40,15 @@ export function PDFViewer({ file }: { file: PDFFile }) {
 
   // on text selection on this dom element, console log
   const handleSelectionChange = useCallback(
-    (e) => {
+    (e: MouseEvent) => {
+      // if this event was not triggered from a pdf file, ignore it
+      try {
+        const isFromPDFDocument = e?.target?.closest('.pdf-document')
+        if (!isFromPDFDocument) return
+      } catch (error) {
+        return
+      }
+
       // get selection location on the browser window
       // and log it
       if (!tooltipRef.current || !iframeRef.current || !ctrRef.current) return
