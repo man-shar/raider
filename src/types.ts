@@ -2,7 +2,7 @@ import { ElectronAPI } from '@electron-toolkit/preload'
 
 export interface PDFFile {
   file: File
-  buf: ArrayBuffer
+  buf: { data: Array<number> }
   metadata: { name: string }
 }
 

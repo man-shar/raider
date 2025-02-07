@@ -1,0 +1,22 @@
+.react-pdf__Outline li {
+  list-style: none;
+}
+
+.react-pdf__Outline a:hover {
+  background-color: theme('colors.gray.500');
+}
+
+.react-pdf__Outline ul {
+  margin: 0;
+}
+
+.react-pdf__Outline > ul {
+  padding: 0;
+}
+
+.react-pdf__Outline a {
+  padding: 5px;
+  text-decoration: none;
+  color: theme('colors.gray.200');
+  border-radius: theme('borderRadius.sm');
+}

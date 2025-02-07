@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { Document, Page } from 'react-pdf'
+import { Document, Outline, Page } from 'react-pdf'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { PDFFile } from '@types'
 import LinkService from 'react-pdf/src/LinkService.js'
@@ -8,7 +8,6 @@ import { Command, CornerDownLeft } from 'lucide-react'
 import { IFrame } from './Iframe'
 import { AppContext } from '@renderer/context/AppContext'
 import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
-import { createTOC, TOCItem } from '@renderer/pdf-utils/createTOC'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
 
 interface DocumentRef {
@@ -27,23 +26,8 @@ export function PDFViewer({ file }: { file: PDFFile }) {
     standardFontDataUrl: '/standard_fonts/'
   })
 
-  const [toc, setToc] = useState<TOCItem[] | null>(null)
-
   const onDocumentLoadSuccess = useCallback(async (pdf: PDFDocumentProxy) => {
     setNumPages(pdf.numPages)
-
-    const outline = await pdf.getOutline()
-
-    if (outline) {
-      try {
-        const t = await createTOC(pdf, outline)
-        console.log(t)
-        setToc(t)
-      } catch (error) {
-        setToc(null)
-        console.error(error)
-      }
-    }
   }, [])
 
   const ctrRef = useRef<HTMLDivElement>(null)
@@ -130,7 +114,7 @@ export function PDFViewer({ file }: { file: PDFFile }) {
   )
 
   const toggleToc = useCallback(() => {
-    if (!tocRef.current || !toc) return
+    if (!tocRef.current) return
 
     if (tocRef.current) {
       if (tocRef.current.classList.contains('hidden')) {
@@ -201,25 +185,6 @@ export function PDFViewer({ file }: { file: PDFFile }) {
         </div>
       </IFrame>
 
-      <div className="hidden sticky h-0 top-20 left-20 right-0 mx-auto z-10" ref={tocRef}>
-        <div className="px-4 py-2 bg-gray-600 text-gray-200 border border-gray-200 shadow rounded-md text-xs w-fit">
-          {toc?.map((item) => (
-            <div
-              key={item.pageNumber}
-              className="px-2 py-1 rounded-sm cursor-pointer hover:bg-gray-500"
-              onClick={() => {
-                documentRef.current?.viewer.current.scrollPageIntoView({
-                  pageNumber: item.pageNumber
-                })
-                toggleToc()
-              }}
-            >
-              {item.title}
-            </div>
-          ))}
-        </div>
-      </div>
-
       <Document
         ref={documentRef}
         file={file.buf}
@@ -228,6 +193,17 @@ export function PDFViewer({ file }: { file: PDFFile }) {
         className="pdf-document"
         renderMode="canvas"
       >
+        <div className="hidden sticky h-0 top-20 left-20 right-0 mx-auto z-10" ref={tocRef}>
+          <Outline
+            className="px-4 py-2 bg-gray-600 text-gray-200 border border-gray-200 shadow rounded-md text-xs w-fit"
+            onItemClick={({ pageNumber }) => {
+              documentRef.current?.viewer.current.scrollPageIntoView({
+                pageNumber: pageNumber
+              })
+              toggleToc()
+            }}
+          />
+        </div>
         {Array.from(new Array(numPages), (_, index) => (
           <Page key={`page_${index + 1}`} pageNumber={index + 1} className="mb-4" />
         ))}

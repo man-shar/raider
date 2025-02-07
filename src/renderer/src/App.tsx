@@ -40,7 +40,7 @@ function App() {
           const newFiles: PDFFile[] = bufs.map((buf, i) => {
             return {
               file: fileList[i],
-              buf: buf.slice(0),
+              buf: { data: Array.from(new Uint8Array(buf.slice(0))) },
               metadata: {
                 name: fileList[i].name
               }
@@ -65,14 +65,6 @@ function App() {
       <MessageManagerContext.Provider value={MessageManager()}>
         <MessageMonitor />
         <div className="prose min-w-screen h-screen relative">
-          {/* <input
-            type="file"
-            multiple
-            ref={inputRef}
-            className="hidden"
-            onChange={onFileChange}
-            accept="application/pdf"
-          /> */}
           <div className="flex flex-row divide-x divide-gray-200 w-full h-full ">
             {addedFiles.length ? (
               <div className="sidebar min-w-96 max-w-96 h-screen bg-white">
@@ -85,6 +77,17 @@ function App() {
                 files={addedFiles}
                 setSelectedFile={setSelectedFile}
                 addFileClick={() => inputRef.current?.click()}
+                closeFile={(file, idx) => {
+                  const newFiles = addedFiles.filter((f, i) => i !== idx)
+                  if (!newFiles.length) {
+                    setSelectedFile(null)
+                  } else {
+                    setSelectedFile(
+                      newFiles[idx + 1 > newFiles.length - 1 ? newFiles.length - 1 : idx + 1]
+                    )
+                  }
+                  setAddedFiles(newFiles)
+                }}
               />
 
               <div className="files relative">

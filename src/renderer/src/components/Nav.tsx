@@ -13,7 +13,7 @@ export function Nav({
   files: PDFFile[]
   setSelectedFile: (file: PDFFile) => void
   addFileClick: () => void
-  closeFile: (file: PDFFile) => void
+  closeFile: (file: PDFFile, idx: number) => void
 }) {
   return files.length ? (
     <>
@@ -33,7 +33,7 @@ export function Nav({
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                closeFile(file)
+                closeFile(file, index)
               }}
             />
           </button>
