@@ -1,6 +1,4 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import { IpcRendererEvent } from 'electron'
-import { ChatCompletionRole } from 'openai/resources/index.mjs'
 
 export interface PDFFile {
   file: File
@@ -14,7 +12,7 @@ export interface ChatMessageType {
   highlightedText: string
   timestamp: string
   response: string
-  messages: { role: ChatCompletionRole; content: string }[]
+  messages: { role: string; content: string }[]
   metadata: {
     model_name: string
   }

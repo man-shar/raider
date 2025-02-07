@@ -1,10 +1,9 @@
-import { useState, KeyboardEvent, useContext, useSyncExternalStore } from 'react'
+import { KeyboardEvent, useContext, useSyncExternalStore } from 'react'
 import { Input, MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 import { AppContext } from '@renderer/context/AppContext'
 import { ChatMessage } from './ChatMessage'
 
 export function ChatBar() {
-  const [inputValue, setInputValue] = useState('')
   const { chatManager } = useContext(AppContext)
   const message = useContext(MessageManagerContext)
 
@@ -23,8 +22,7 @@ export function ChatBar() {
         chatManager.sendChatMessage({ userInput: val, highlightedText: '' }).catch((error) => {
           message.error('Error sending message:' + error)
         })
-
-        setInputValue('')
+        e.currentTarget.value = ''
       } catch (error) {
         message.error('Error sending message:' + error)
       } finally {

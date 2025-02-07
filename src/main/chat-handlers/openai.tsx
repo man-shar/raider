@@ -3,9 +3,10 @@ import systemPrompt from './prompts/basic-sys.txt?raw'
 import userPrompt from './prompts/basic-user.txt?raw'
 import OpenAI from 'openai'
 import { BrowserWindow } from 'electron'
+import { globals } from '../constants'
 
 const client = new OpenAI({
-  apiKey: process.env['MAIN_VITE_OPENAI_API_KEY'] // This is the default and can be omitted
+  apiKey: import.meta.env.MAIN_VITE_OPENAI_API_KEY // This is the default and can be omitted
 })
 
 async function startOaiStream(callback: (chunk: string) => void, messages) {
@@ -38,7 +39,8 @@ export function startOaiChat({ userInput, highlightedText }: MessageDetails): Ch
         .replace('{highlightedText}', highlightedText)
     }
   ]
-  const mainWindowId = parseInt(process.env['MAIN_WINDOW_ID']!)
+
+  const mainWindowId = parseInt(globals['MAIN_WINDOW_ID']!)
   const mainWindow = BrowserWindow.fromId(mainWindowId)
   if (!mainWindow) throw new Error('No main window found')
   if (!mainWindowId) throw new Error('No main window id found')

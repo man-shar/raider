@@ -8,6 +8,8 @@ import { Command, CornerDownLeft } from 'lucide-react'
 import { IFrame } from './Iframe'
 import { AppContext } from '@renderer/context/AppContext'
 import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
+import { createTOC, TOCItem } from '@renderer/pdf-utils/createTOC'
+import { useKeyDown } from '@renderer/hooks/useKeyDown'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -25,8 +27,23 @@ export function PDFViewer({ file }: { file: PDFFile }) {
     standardFontDataUrl: '/standard_fonts/'
   })
 
-  const onDocumentLoadSuccess = useCallback((pdf: PDFDocumentProxy) => {
+  const [toc, setToc] = useState<TOCItem[] | null>(null)
+
+  const onDocumentLoadSuccess = useCallback(async (pdf: PDFDocumentProxy) => {
     setNumPages(pdf.numPages)
+
+    const outline = await pdf.getOutline()
+
+    if (outline) {
+      try {
+        const t = await createTOC(pdf, outline)
+        console.log(t)
+        setToc(t)
+      } catch (error) {
+        setToc(null)
+        console.error(error)
+      }
+    }
   }, [])
 
   const ctrRef = useRef<HTMLDivElement>(null)
@@ -34,6 +51,7 @@ export function PDFViewer({ file }: { file: PDFFile }) {
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const documentRef = useRef<DocumentRef>(null)
+  const tocRef = useRef<HTMLDivElement>(null)
 
   const { chatManager } = useContext(AppContext)
   const message = useContext(MessageManagerContext)
@@ -43,6 +61,7 @@ export function PDFViewer({ file }: { file: PDFFile }) {
     (e: MouseEvent) => {
       // if this event was not triggered from a pdf file, ignore it
       try {
+        // @ts-ignore
         const isFromPDFDocument = e?.target?.closest('.pdf-document')
         if (!isFromPDFDocument) return
       } catch (error) {
@@ -110,6 +129,20 @@ export function PDFViewer({ file }: { file: PDFFile }) {
     [chatManager]
   )
 
+  const toggleToc = useCallback(() => {
+    if (!tocRef.current || !toc) return
+
+    if (tocRef.current) {
+      if (tocRef.current.classList.contains('hidden')) {
+        tocRef.current.classList.remove('hidden')
+      } else {
+        tocRef.current.classList.add('hidden')
+      }
+    }
+  }, [])
+
+  useKeyDown({ key: 't', ctrl: true, callback: toggleToc })
+
   useEffect(() => {
     // then add them back
     document.addEventListener('mouseup', handleSelectionChange)
@@ -167,6 +200,26 @@ export function PDFViewer({ file }: { file: PDFFile }) {
           </div>
         </div>
       </IFrame>
+
+      <div className="hidden sticky h-0 top-20 left-20 right-0 mx-auto z-10" ref={tocRef}>
+        <div className="px-4 py-2 bg-gray-600 text-gray-200 border border-gray-200 shadow rounded-md text-xs w-fit">
+          {toc?.map((item) => (
+            <div
+              key={item.pageNumber}
+              className="px-2 py-1 rounded-sm cursor-pointer hover:bg-gray-500"
+              onClick={() => {
+                documentRef.current?.viewer.current.scrollPageIntoView({
+                  pageNumber: item.pageNumber
+                })
+                toggleToc()
+              }}
+            >
+              {item.title}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <Document
         ref={documentRef}
         file={file.buf}

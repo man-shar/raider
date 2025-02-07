@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import sendChatMessage from './chat-handlers/sendChatMessage'
+import { globals } from './constants'
 
 function createWindow(): void {
   // Create the browser window.
@@ -27,7 +28,7 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  process.env['MAIN_WINDOW_ID'] = mainWindow.id
+  globals['MAIN_WINDOW_ID'] = mainWindow.id
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
