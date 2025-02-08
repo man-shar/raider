@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Document, Outline, Page } from 'react-pdf'
-import type { PDFDocumentProxy } from 'pdfjs-dist'
+import type { PageViewport, PDFDocumentProxy } from 'pdfjs-dist'
 import { FileHighlights, HighlightType, RaiderFile } from '@types'
 import LinkService from 'react-pdf/src/LinkService.js'
 import { ScrollPageIntoViewArgs } from 'react-pdf/src/shared/types.js'
@@ -11,6 +11,8 @@ import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
 import debounce from 'lodash.debounce'
 import { Highlights } from './Highlights'
+import { VariableSizeList as List } from 'react-window'
+import { asyncMap } from '@wojtekmaj/async-array-utils'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -23,6 +25,9 @@ interface DocumentRef {
 export function PDFDocument({ file }: { file: RaiderFile }) {
   const [numPages, setNumPages] = useState<number>()
   const [highlights, setHighlights] = useState<FileHighlights>(file.highlights || [])
+  const [pageViewports, setPageViewports] = useState<{ [pageNumber: number]: PageViewport } | null>(
+    null
+  )
 
   const options = useRef({
     cMapUrl: '/cmaps/',
@@ -30,7 +35,29 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
   })
   const onDocumentLoadSuccess = useCallback(async (pdf: PDFDocumentProxy) => {
     setNumPages(pdf.numPages)
+    setPageViewports(null)
+    ;(async () => {
+      const pageNumbers = Array.from(new Array(pdf.numPages)).map((_, index) => index + 1)
+
+      const nextPageViewports = await asyncMap(pageNumbers, (pageNumber: number) =>
+        pdf.getPage(pageNumber).then((page) => page.getViewport({ scale: 1 }))
+      )
+
+      setPageViewports(nextPageViewports)
+    })()
   }, [])
+
+  function getPageHeight(pageIndex) {
+    if (!pageViewports) {
+      throw new Error('getPageHeight() called too early')
+    }
+
+    const pageViewport = pageViewports[pageIndex]
+    const scale = width / pageViewport.width
+    const actualHeight = pageViewport.height * scale
+
+    return actualHeight
+  }
 
   const [ctrRef, setCtrRef] = useState<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -143,14 +170,29 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
     (e: KeyboardEvent) => {
       if (e.key === 'h') {
         const selection = window.getSelection()
-        if (!selection || selection.isCollapsed || !ctrRef) return
+        let pageNumber: number
+        let pageDom: HTMLElement | null | undefined
+
+        try {
+          // also get pdf page
+          pageDom = selection?.anchorNode?.parentElement?.closest('.raider-pdf-page')
+          if (!pageDom) throw new Error('Page dom not found')
+          // get the data attribute data-page-number of the page
+          pageNumber = Number(pageDom?.getAttribute('data-page-number'))
+          if (!pageNumber) throw new Error('Page number not found')
+        } catch (error) {
+          console.log('error getting page number of highlight', error, e)
+          return
+        }
+
+        if (!selection || selection.isCollapsed || !ctrRef || !pageNumber || !pageDom) return
 
         // Get all the selected ranges
         const range = selection.getRangeAt(0)
         let chunks: { x: number; y: number; width: number; height: number }[] = []
 
-        const ctrRect = ctrRef?.getBoundingClientRect()
-        if (!ctrRect) return
+        const pageDomRect = pageDom?.getBoundingClientRect()
+        if (!pageDomRect) return
 
         // Get client rects for each line in the selection
         const clientRects = range.getClientRects()
@@ -160,8 +202,8 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
           if (rect.height > 40) continue
 
           chunks.push({
-            x: rect.left - ctrRect.left,
-            y: rect.top - ctrRect.top,
+            x: rect.left - pageDomRect.left,
+            y: rect.top - pageDomRect.top,
             width: rect.width,
             height: rect.height
           })
@@ -175,7 +217,8 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
         const highlight: HighlightType = {
           fullText: selection.toString(),
           comment: '',
-          originalViewportWidth: ctrRect.width,
+          originalViewportWidth: pageDomRect.width,
+          pageNumber: pageNumber,
           chunks
         }
 
@@ -186,6 +229,7 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
   )
 
   useEffect(() => {
+    if (!ctrRef) return
     // then add them back
     document.addEventListener('mouseup', handleSelectionChange)
     iframeRef.current?.contentDocument?.addEventListener('keydown', handleChatSend)
@@ -199,12 +243,29 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
       iframeRef.current?.contentDocument?.removeEventListener('keydown', handleChatSend)
       window.removeEventListener('keydown', handleHighlight)
     }
-  }, [handleHighlight, handleChatSend, handleResize, handleSelectionChange])
+  }, [ctrRef, handleHighlight, handleChatSend, handleResize, handleSelectionChange])
 
   // when the highlights change, send the new ones to the backend
   useEffect(() => {
     window.fileHandler.updateHighlights(file.path, highlights)
   }, [highlights])
+
+  function Row({ index, style }) {
+    const thisPageHighlights = highlights.filter((highlight) => highlight.pageNumber === index + 1)
+
+    return (
+      <div style={style}>
+        <Page
+          pageIndex={index}
+          width={width}
+          key={`page_${index + 1}`}
+          className="mb-4 raider-pdf-page"
+        >
+          <Highlights highlights={thisPageHighlights} width={width} />
+        </Page>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -275,17 +336,16 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
             />
           </div>
           <div className="relative">
-            <Highlights highlights={highlights} width={width} />
-            {Array.from(new Array(numPages), (_, index) => {
-              return (
-                <Page
-                  key={`page_${index + 1}`}
-                  pageNumber={index + 1}
-                  className="mb-4"
-                  width={width}
-                />
-              )
-            })}
+            {pageViewports && numPages && (
+              <List
+                width={width}
+                height={width * 1.5}
+                itemCount={numPages}
+                itemSize={getPageHeight}
+              >
+                {Row}
+              </List>
+            )}
           </div>
         </Document>
       )}
