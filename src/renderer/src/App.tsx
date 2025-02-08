@@ -1,6 +1,6 @@
-import type { PDFFile } from '@types'
+import type { RaiderFile } from '@types'
 import { PDFDocument } from './components/pdf-viewer/PDFDocument'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
@@ -8,11 +8,11 @@ import { twMerge } from 'tailwind-merge'
 import { ChatBar } from './components/ChatBar'
 import { Nav } from './components/Nav'
 import {
-  DropFiles,
+  Button,
+  Input,
   MessageManager,
   MessageManagerContext,
-  MessageMonitor,
-  SpinningLoader
+  MessageMonitor
 } from '@defogdotai/agents-ui-components/core-ui'
 import { AppContext } from './context/AppContext'
 import { ChatManager } from './components/ChatManager'
@@ -23,45 +23,21 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString()
 
 function App() {
-  const [addedFiles, setAddedFiles] = useState<PDFFile[]>([])
-  const [loading, setLoading] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<PDFFile | null>(null)
+  const [addedFiles, setAddedFiles] = useState<RaiderFile[]>([])
+  const [selectedFile, setSelectedFile] = useState<RaiderFile | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const addFiles = (fileList: Array<File>) => {
-    try {
-      setLoading(true)
-      // add the uploaded file to the files array
-      if (fileList) {
-        const bufs: Promise<ArrayBuffer>[] = Array.from(fileList).map((file) => file.arrayBuffer())
-
-        Promise.all(bufs).then((bufs) => {
-          const newFiles: PDFFile[] = bufs.map((buf, i) => {
-            return {
-              file: fileList[i],
-              buf: { data: Array.from(new Uint8Array(buf.slice(0))) },
-              metadata: {
-                name: fileList[i].name
-              }
-            }
-          })
-
-          setAddedFiles((d) => [...d, ...newFiles])
-
-          if (!selectedFile) {
-            setSelectedFile(newFiles[0])
-          }
-          setLoading(false)
-        })
-      }
-    } catch (e) {
-      setLoading(false)
+  useEffect(() => {
+    if (!selectedFile) {
+      setSelectedFile(addedFiles[0])
     }
-  }
+  }, [addedFiles])
+
+  const message = useRef(MessageManager())
 
   return (
     <AppContext.Provider value={{ chatManager: ChatManager() }}>
-      <MessageManagerContext.Provider value={MessageManager()}>
+      <MessageManagerContext.Provider value={message.current}>
         <MessageMonitor />
         <div className="prose min-w-screen h-screen relative">
           <div className="flex flex-row divide-x divide-gray-200 w-full h-full ">
@@ -111,46 +87,34 @@ function App() {
                       inputRef.current?.click()
                     }}
                   >
-                    {loading ? (
-                      <SpinningLoader />
-                    ) : (
-                      <div className="border-1 p-2 rounded-md border-gray-300">
-                        <DropFiles
-                          allowMultiple={true}
-                          rootClassNames="!text-gray-400 group-hover:text-gray-600 m-auto"
-                          showIcon={true}
-                          onDrop={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            let files = e?.dataTransfer?.items
-                            if (!files || files.length === 0) return
+                    <div className="border-1 p-2 rounded-md border-gray-300 divide-y divide-gray-300">
+                      <Button
+                        className="mb-5 w-full justify-center cursor-pointer"
+                        variant="primary"
+                        onClick={async () => {
+                          const filePaths = await window.fileHandler.selectFile()
+                          setAddedFiles((d) => [...d, ...filePaths])
+                        }}
+                      >
+                        <div>Click to select files</div>
+                      </Button>
+                      <Input
+                        label="Or paste a URL"
+                        placeholder="Enter URL"
+                        inputClassNames="w-full text-sm focus:outline-none p-2 shadow-none"
+                        onPressEnter={async (e) => {
+                          const filePaths = await window.fileHandler.openURL(e.currentTarget.value)
 
-                            addFiles(
-                              Array.from(files)
-                                .map((file) => file.getAsFile())
-                                .filter(Boolean) as File[]
-                            )
-                          }}
-                          onFileSelect={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            // @ts-ignore
-                            let files = e?.target?.files
-                            if (!files || files.length === 0) return
+                          if (filePaths.error) {
+                            message.current.error(filePaths.error)
+                            return
+                          }
 
-                            addFiles(Array.from(files).filter(Boolean) as File[])
-                          }}
-                          acceptedFileTypes={['application/pdf']}
-                        />
-                        <input
-                          placeholder="Or paste a URL"
-                          className="border-b border-gray-300 w-full text-sm focus:outline-blue-200 py-2"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                          }}
-                        />
-                      </div>
-                    )}
+                          setAddedFiles((d) => [...d, filePaths])
+                          e.stopPropagation()
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               )}

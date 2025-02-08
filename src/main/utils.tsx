@@ -13,3 +13,14 @@ export function getDb(): db {
 
   return db
 }
+
+export function parseUrl(url: string) {
+  // if this is a arxiv url, check if it is of the form arxiv.org/abs/2101.00001
+  // if so, change the abs to pdf and send back
+
+  if (url.indexOf('arxiv.org/abs/') >= 0) {
+    return url.replace('abs/', 'pdf/')
+  } else {
+    return url
+  }
+}

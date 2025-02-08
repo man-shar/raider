@@ -1,5 +1,5 @@
 import { Plus, X } from 'lucide-react'
-import type { PDFFile } from '@types'
+import type { RaiderFile } from '@types'
 import { twMerge } from 'tailwind-merge'
 
 export function Nav({
@@ -9,11 +9,11 @@ export function Nav({
   addFileClick,
   closeFile
 }: {
-  selectedFile: PDFFile | null
-  files: PDFFile[]
-  setSelectedFile: (file: PDFFile) => void
+  selectedFile: RaiderFile | null
+  files: RaiderFile[]
+  setSelectedFile: (file: RaiderFile) => void
   addFileClick: () => void
-  closeFile: (file: PDFFile, idx: number) => void
+  closeFile: (file: RaiderFile, idx: number) => void
 }) {
   return files.length ? (
     <>
@@ -27,7 +27,7 @@ export function Nav({
             )}
             onClick={() => setSelectedFile(file)}
           >
-            <span className="">{file.metadata.name}</span>
+            <span className="">{file.name}</span>
             <X
               className="w-3 ml-auto inline hover:stroke-3"
               onClick={(e) => {

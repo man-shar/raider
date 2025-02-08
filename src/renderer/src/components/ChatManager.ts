@@ -60,7 +60,6 @@ export function ChatManager(): ChatManager {
     setLoading(true)
     const chatMessage = await window.chat.sendChatMessage(details)
 
-    console.log(chatMessage)
     messages.push(chatMessage)
 
     setLoading(false)

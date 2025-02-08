@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@defogdotai/agents-ui-components':
-        specifier: ^1.1.39
-        version: 1.1.39(@babel/runtime@7.26.7)(@codemirror/autocomplete@6.18.4)(@codemirror/language@6.10.8)(@codemirror/lint@6.8.4)(@codemirror/search@6.5.8)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.2)(@types/node@22.10.10)(@types/react@19.0.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        specifier: ^1.1.40
+        version: 1.1.40(@babel/runtime@7.26.7)(@codemirror/autocomplete@6.18.4)(@codemirror/language@6.10.8)(@codemirror/lint@6.8.4)(@codemirror/search@6.5.8)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.2)(@types/node@22.10.10)(@types/react@19.0.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@electron-toolkit/preload':
         specifier: ^3.0.1
         version: 3.0.1(electron@34.0.1)
@@ -258,8 +258,8 @@ packages:
   '@codemirror/view@6.36.2':
     resolution: {integrity: sha512-DZ6ONbs8qdJK0fdN7AB82CgI6tYXf4HWk1wSVa0+9bhVznCuuvhQtX8bFBoy3dv8rZSQqUd8GvhVAcielcidrA==}
 
-  '@defogdotai/agents-ui-components@1.1.39':
-    resolution: {integrity: sha512-fvt+3Y3wYRpq20IuR1WQnn9dlOzJhvrwGhkq3FmPtKpq1YL6rJu6YLuccVrSZFCJXdlna7xQ/AoemLH395z5jw==}
+  '@defogdotai/agents-ui-components@1.1.40':
+    resolution: {integrity: sha512-fNRtCjYSKjLUbDjyXATixtP19QSkh6OP+PNLmeiqdobAog9NNC5BMF5h0ZU7ql8HP6GD+eD9uEIjRTdrbawgXQ==}
     peerDependencies:
       react: 19.0.0
       react-dom: 19.0.0
@@ -4233,7 +4233,7 @@ snapshots:
       style-mod: 4.1.2
       w3c-keyname: 2.2.8
 
-  '@defogdotai/agents-ui-components@1.1.39(@babel/runtime@7.26.7)(@codemirror/autocomplete@6.18.4)(@codemirror/language@6.10.8)(@codemirror/lint@6.8.4)(@codemirror/search@6.5.8)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.2)(@types/node@22.10.10)(@types/react@19.0.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+  '@defogdotai/agents-ui-components@1.1.40(@babel/runtime@7.26.7)(@codemirror/autocomplete@6.18.4)(@codemirror/language@6.10.8)(@codemirror/lint@6.8.4)(@codemirror/search@6.5.8)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.2)(@types/node@22.10.10)(@types/react@19.0.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       '@codemirror/lang-python': 6.1.7
       '@codemirror/lang-sql': 6.8.0

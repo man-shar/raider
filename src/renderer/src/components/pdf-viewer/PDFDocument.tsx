@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Document, Outline, Page } from 'react-pdf'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
-import { HighlightsType, HighlightType, PDFFile } from '@types'
+import { HighlightsType, HighlightType, RaiderFile } from '@types'
 import LinkService from 'react-pdf/src/LinkService.js'
 import { ScrollPageIntoViewArgs } from 'react-pdf/src/shared/types.js'
 import { Command, CornerDownLeft } from 'lucide-react'
@@ -20,7 +20,7 @@ interface DocumentRef {
   }>
 }
 
-export function PDFDocument({ file }: { file: PDFFile }) {
+export function PDFDocument({ file }: { file: RaiderFile }) {
   const [numPages, setNumPages] = useState<number>()
   const [highlights, setHighlights] = useState<HighlightsType>([])
 
@@ -28,12 +28,11 @@ export function PDFDocument({ file }: { file: PDFFile }) {
     cMapUrl: '/cmaps/',
     standardFontDataUrl: '/standard_fonts/'
   })
-
   const onDocumentLoadSuccess = useCallback(async (pdf: PDFDocumentProxy) => {
     setNumPages(pdf.numPages)
   }, [])
 
-  const ctrRef = useRef<HTMLDivElement>(null)
+  const [ctrRef, setCtrRef] = useState<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -57,7 +56,7 @@ export function PDFDocument({ file }: { file: PDFFile }) {
 
       // get selection location on the browser window
       // and log it
-      if (!tooltipRef.current || !iframeRef.current || !ctrRef.current) return
+      if (!tooltipRef.current || !iframeRef.current || !ctrRef) return
       iframeRef.current.style.opacity = '0'
 
       const selection = document.getSelection()
@@ -67,7 +66,7 @@ export function PDFDocument({ file }: { file: PDFFile }) {
 
       const range = selection.getRangeAt(0)
       const clientRects = range.getClientRects()
-      const ctrRect = ctrRef.current?.getBoundingClientRect()
+      const ctrRect = ctrRef?.getBoundingClientRect()
 
       // set tooltip position
       iframeRef.current.style.opacity = '1'
@@ -78,7 +77,7 @@ export function PDFDocument({ file }: { file: PDFFile }) {
   )
 
   // detect ctrl enter keypress
-  const handleKeyPress = useCallback(
+  const handleChatSend = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         const selection = document.getSelection()
@@ -131,71 +130,83 @@ export function PDFDocument({ file }: { file: PDFFile }) {
   const [width, setWidth] = useState<number>(500)
 
   const handleResize = useCallback(() => {
-    if (!ctrRef.current) return
-    setWidth(ctrRef.current?.clientWidth < 500 ? 500 : ctrRef.current?.clientWidth)
-  }, [])
+    if (!ctrRef) {
+      setWidth(500)
+    } else {
+      setWidth(ctrRef?.clientWidth < 500 ? 500 : ctrRef?.clientWidth)
+    }
+  }, [ctrRef])
 
   useKeyDown({ key: 't', ctrl: true, callback: toggleToc })
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'h') {
-      const selection = window.getSelection()
-      if (!selection || selection.isCollapsed || !ctrRef.current) return
+  const handleHighlight = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'h') {
+        const selection = window.getSelection()
+        if (!selection || selection.isCollapsed || !ctrRef) return
 
-      // Get all the selected ranges
-      const range = selection.getRangeAt(0)
-      let chunks: { x: number; y: number; width: number; height: number }[] = []
+        // Get all the selected ranges
+        const range = selection.getRangeAt(0)
+        let chunks: { x: number; y: number; width: number; height: number }[] = []
 
-      const ctrRect = ctrRef.current?.getBoundingClientRect()
-      if (!ctrRect) return
+        const ctrRect = ctrRef?.getBoundingClientRect()
+        if (!ctrRect) return
 
-      // Get client rects for each line in the selection
-      const clientRects = range.getClientRects()
+        // Get client rects for each line in the selection
+        const clientRects = range.getClientRects()
 
-      for (let i = 0; i < clientRects.length; i++) {
-        const rect = clientRects[i]
-        if (rect.height > 40) continue
+        for (let i = 0; i < clientRects.length; i++) {
+          const rect = clientRects[i]
+          if (rect.height > 40) continue
 
-        chunks.push({
-          x: rect.left - ctrRect.left,
-          y: rect.top - ctrRect.top,
-          width: rect.width,
-          height: rect.height
+          chunks.push({
+            x: rect.left - ctrRect.left,
+            y: rect.top - ctrRect.top,
+            width: rect.width,
+            height: rect.height
+          })
+        }
+
+        // deduplicate chunks
+        chunks = chunks.filter((chunk, index) => {
+          return chunks.findIndex((c) => c.x === chunk.x && c.y === chunk.y) === index
         })
+
+        const highlight: HighlightType = {
+          fullText: selection.toString(),
+          comment: '',
+          originalViewportWidth: ctrRect.width,
+          chunks
+        }
+
+        setHighlights((prev) => [...prev, highlight])
       }
-
-      // deduplicate chunks
-      chunks = chunks.filter((chunk, index) => {
-        return chunks.findIndex((c) => c.x === chunk.x && c.y === chunk.y) === index
-      })
-
-      const highlight: HighlightType = {
-        fullText: selection.toString(),
-        comment: '',
-        originalViewportWidth: ctrRect.width,
-        chunks
-      }
-
-      setHighlights((prev) => [...prev, highlight])
-    }
-  }, [])
+    },
+    [ctrRef]
+  )
 
   useEffect(() => {
     // then add them back
     document.addEventListener('mouseup', handleSelectionChange)
-    iframeRef.current?.contentDocument?.addEventListener('keydown', handleKeyPress)
-    window.addEventListener('resize', debounce(handleResize, 100))
-    window.addEventListener('keydown', handleKeyDown)
+    iframeRef.current?.contentDocument?.addEventListener('keydown', handleChatSend)
+    window.addEventListener('resize', debounce(handleResize, 200))
+    window.addEventListener('keydown', handleHighlight)
+
+    handleResize()
 
     return () => {
       document.removeEventListener('mouseup', handleSelectionChange)
-      iframeRef.current?.contentDocument?.removeEventListener('keydown', handleKeyPress)
-      window.removeEventListener('keydown', handleKeyDown)
+      iframeRef.current?.contentDocument?.removeEventListener('keydown', handleChatSend)
+      window.removeEventListener('keydown', handleHighlight)
     }
-  }, [handleKeyDown, handleKeyPress, handleResize, handleSelectionChange])
+  }, [handleHighlight, handleChatSend, handleResize, handleSelectionChange])
 
   return (
-    <div ref={ctrRef}>
+    <div
+      ref={(e) => {
+        setCtrRef(e)
+      }}
+    >
       <IFrame
         ref={iframeRef}
         className="w-96"
@@ -239,38 +250,40 @@ export function PDFDocument({ file }: { file: PDFFile }) {
         </div>
       </IFrame>
 
-      <Document
-        ref={documentRef}
-        file={file.buf}
-        onLoadSuccess={onDocumentLoadSuccess}
-        options={options.current}
-        className="relative pdf-document"
-      >
-        <div className="hidden sticky h-0 top-20 left-20 right-0 mx-auto z-10" ref={tocRef}>
-          <Outline
-            className="px-4 py-2 bg-gray-600 text-gray-200 border border-gray-200 shadow rounded-md text-xs w-fit"
-            onItemClick={({ pageNumber }) => {
-              documentRef.current?.viewer.current.scrollPageIntoView({
-                pageNumber: pageNumber
-              })
-              toggleToc()
-            }}
-          />
-        </div>
-        <div className="relative">
-          <Highlights highlights={highlights} width={width} />
-          {Array.from(new Array(numPages), (_, index) => {
-            return (
-              <Page
-                key={`page_${index + 1}`}
-                pageNumber={index + 1}
-                className="mb-4"
-                width={width}
-              />
-            )
-          })}
-        </div>
-      </Document>
+      {ctrRef && (
+        <Document
+          ref={documentRef}
+          file={file.buf}
+          onLoadSuccess={onDocumentLoadSuccess}
+          options={options.current}
+          className="relative pdf-document"
+        >
+          <div className="hidden sticky h-0 top-20 left-20 right-0 mx-auto z-10" ref={tocRef}>
+            <Outline
+              className="px-4 py-2 bg-gray-600 text-gray-200 border border-gray-200 shadow rounded-md text-xs w-fit"
+              onItemClick={({ pageNumber }) => {
+                documentRef.current?.viewer.current.scrollPageIntoView({
+                  pageNumber: pageNumber
+                })
+                toggleToc()
+              }}
+            />
+          </div>
+          <div className="relative">
+            <Highlights highlights={highlights} width={width} />
+            {Array.from(new Array(numPages), (_, index) => {
+              return (
+                <Page
+                  key={`page_${index + 1}`}
+                  pageNumber={index + 1}
+                  className="mb-4"
+                  width={width}
+                />
+              )
+            })}
+          </div>
+        </Document>
+      )}
     </div>
   )
 }

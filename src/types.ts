@@ -1,11 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 
-export interface PDFFile {
-  file: File
-  buf: { data: Array<number> }
-  metadata: { name: string }
-}
-
 export interface ChatMessageType {
   id: string
   userInput: string
@@ -39,7 +33,7 @@ export interface ChatAPI {
   onChunkReceived: (messageId: string, callback: (chunk: string) => void) => () => void
 }
 
-// ---- PDF related types
+// ---- File related types
 export interface HighlightType {
   fullText: string
   comment: string
@@ -55,9 +49,25 @@ export interface HighlightType {
 }
 export type HighlightsType = HighlightType[]
 
+export interface RaiderFile {
+  path: string
+  name: string
+  buf: { data: Array<number> }
+  metadata: {
+    highlights: HighlightsType
+  }
+  type: string
+}
+
+export interface FileAPI {
+  selectFile: () => Promise<RaiderFile[]>
+  openURL: (url: string) => Promise<RaiderFile | { error: string }>
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
     chat: ChatAPI
+    fileHandler: FileAPI
   }
 }
