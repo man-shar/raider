@@ -1,14 +1,16 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Document, Outline, Page } from 'react-pdf'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
-import { PDFFile } from '@types'
+import { HighlightsType, HighlightType, PDFFile } from '@types'
 import LinkService from 'react-pdf/src/LinkService.js'
 import { ScrollPageIntoViewArgs } from 'react-pdf/src/shared/types.js'
 import { Command, CornerDownLeft } from 'lucide-react'
-import { IFrame } from './Iframe'
+import { IFrame } from '../Iframe'
 import { AppContext } from '@renderer/context/AppContext'
 import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
+import debounce from 'lodash.debounce'
+import { Highlights } from './Highlights'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -18,8 +20,9 @@ interface DocumentRef {
   }>
 }
 
-export function PDFViewer({ file }: { file: PDFFile }) {
+export function PDFDocument({ file }: { file: PDFFile }) {
   const [numPages, setNumPages] = useState<number>()
+  const [highlights, setHighlights] = useState<HighlightsType>([])
 
   const options = useRef({
     cMapUrl: '/cmaps/',
@@ -125,18 +128,71 @@ export function PDFViewer({ file }: { file: PDFFile }) {
     }
   }, [])
 
+  const [width, setWidth] = useState<number>(500)
+
+  const handleResize = useCallback(() => {
+    if (!ctrRef.current) return
+    setWidth(ctrRef.current?.clientWidth < 500 ? 500 : ctrRef.current?.clientWidth)
+  }, [])
+
   useKeyDown({ key: 't', ctrl: true, callback: toggleToc })
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'h') {
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed || !ctrRef.current) return
+
+      // Get all the selected ranges
+      const range = selection.getRangeAt(0)
+      let chunks: { x: number; y: number; width: number; height: number }[] = []
+
+      const ctrRect = ctrRef.current?.getBoundingClientRect()
+      if (!ctrRect) return
+
+      // Get client rects for each line in the selection
+      const clientRects = range.getClientRects()
+
+      for (let i = 0; i < clientRects.length; i++) {
+        const rect = clientRects[i]
+        if (rect.height > 40) continue
+
+        chunks.push({
+          x: rect.left - ctrRect.left,
+          y: rect.top - ctrRect.top,
+          width: rect.width,
+          height: rect.height
+        })
+      }
+
+      // deduplicate chunks
+      chunks = chunks.filter((chunk, index) => {
+        return chunks.findIndex((c) => c.x === chunk.x && c.y === chunk.y) === index
+      })
+
+      const highlight: HighlightType = {
+        fullText: selection.toString(),
+        comment: '',
+        originalViewportWidth: ctrRect.width,
+        chunks
+      }
+
+      setHighlights((prev) => [...prev, highlight])
+    }
+  }, [])
 
   useEffect(() => {
     // then add them back
     document.addEventListener('mouseup', handleSelectionChange)
     iframeRef.current?.contentDocument?.addEventListener('keydown', handleKeyPress)
+    window.addEventListener('resize', debounce(handleResize, 100))
+    window.addEventListener('keydown', handleKeyDown)
 
     return () => {
       document.removeEventListener('mouseup', handleSelectionChange)
       iframeRef.current?.contentDocument?.removeEventListener('keydown', handleKeyPress)
+      window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [])
+  }, [handleKeyDown, handleKeyPress, handleResize, handleSelectionChange])
 
   return (
     <div ref={ctrRef}>
@@ -157,12 +213,10 @@ export function PDFViewer({ file }: { file: PDFFile }) {
           onMouseUp={(e) => {
             e.stopPropagation()
             e.preventDefault()
-            console.log('mouse up')
           }}
           onMouseDown={(e) => {
             e.stopPropagation()
             e.preventDefault()
-            console.log('mouse down')
           }}
           onPointerDown={(e) => {
             e.stopPropagation()
@@ -190,8 +244,7 @@ export function PDFViewer({ file }: { file: PDFFile }) {
         file={file.buf}
         onLoadSuccess={onDocumentLoadSuccess}
         options={options.current}
-        className="pdf-document"
-        renderMode="canvas"
+        className="relative pdf-document"
       >
         <div className="hidden sticky h-0 top-20 left-20 right-0 mx-auto z-10" ref={tocRef}>
           <Outline
@@ -204,9 +257,19 @@ export function PDFViewer({ file }: { file: PDFFile }) {
             }}
           />
         </div>
-        {Array.from(new Array(numPages), (_, index) => (
-          <Page key={`page_${index + 1}`} pageNumber={index + 1} className="mb-4" />
-        ))}
+        <div className="relative">
+          <Highlights highlights={highlights} width={width} />
+          {Array.from(new Array(numPages), (_, index) => {
+            return (
+              <Page
+                key={`page_${index + 1}`}
+                pageNumber={index + 1}
+                className="mb-4"
+                width={width}
+              />
+            )
+          })}
+        </div>
       </Document>
     </div>
   )

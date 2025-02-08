@@ -1,5 +1,5 @@
 import type { PDFFile } from '@types'
-import { PDFViewer } from './components/PDFViewer'
+import { PDFDocument } from './components/pdf-viewer/PDFDocument'
 import { useRef, useState } from 'react'
 import { pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
@@ -8,7 +8,6 @@ import { twMerge } from 'tailwind-merge'
 import { ChatBar } from './components/ChatBar'
 import { Nav } from './components/Nav'
 import {
-  Input,
   DropFiles,
   MessageManager,
   MessageManagerContext,
@@ -99,7 +98,7 @@ function App() {
                       selectedFile !== file && 'absolute hidden top-0 left-0 w-full h-full -z-10'
                     )}
                   >
-                    <PDFViewer file={file} />
+                    <PDFDocument file={file} />
                   </div>
                 ))}
               </div>

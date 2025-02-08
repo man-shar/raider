@@ -39,6 +39,22 @@ export interface ChatAPI {
   onChunkReceived: (messageId: string, callback: (chunk: string) => void) => () => void
 }
 
+// ---- PDF related types
+export interface HighlightType {
+  fullText: string
+  comment: string
+  originalViewportWidth: number
+  // one highlight can span multiple lines/pages
+  // so have to store the individual chunks
+  chunks: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }[]
+}
+export type HighlightsType = HighlightType[]
+
 declare global {
   interface Window {
     electron: ElectronAPI
