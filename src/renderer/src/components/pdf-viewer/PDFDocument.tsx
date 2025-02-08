@@ -272,6 +272,7 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
       ref={(e) => {
         setCtrRef(e)
       }}
+      className="scrollbar-hidden"
     >
       <IFrame
         ref={iframeRef}
@@ -322,7 +323,7 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
           file={file.buf}
           onLoadSuccess={onDocumentLoadSuccess}
           options={options.current}
-          className="relative pdf-document"
+          className="relative pdf-document scrollbar-hidden"
         >
           <div className="hidden sticky h-0 top-20 left-20 right-0 mx-auto z-10" ref={tocRef}>
             <Outline

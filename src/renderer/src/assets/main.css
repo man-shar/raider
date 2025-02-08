@@ -2,3 +2,16 @@
 @plugin "@tailwindcss/typography";
 
 @import './pdf-outline.css';
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hidden *::-webkit-scrollbar {
+  display: none;
+}
