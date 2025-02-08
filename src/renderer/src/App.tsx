@@ -22,10 +22,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString()
 
-function App() {
-  const [addedFiles, setAddedFiles] = useState<RaiderFile[]>([])
-  const [selectedFile, setSelectedFile] = useState<RaiderFile | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
+  const [addedFiles, setAddedFiles] = useState<RaiderFile[]>(initialFiles || [])
+  const [selectedFile, setSelectedFile] = useState<RaiderFile | null>(
+    initialFiles.length ? initialFiles[0] : null
+  )
 
   useEffect(() => {
     if (!selectedFile) {
@@ -34,6 +35,17 @@ function App() {
   }, [addedFiles])
 
   const message = useRef(MessageManager())
+
+  const handleSelectFile = useRef(async () => {
+    console.log('selecting file')
+    const { files, error } = await window.fileHandler.selectFile()
+    if (error || !files) {
+      message.current.error(error || 'Could not open file')
+      return
+    }
+    console.log(files)
+    setAddedFiles((d) => [...d, ...files])
+  })
 
   return (
     <AppContext.Provider value={{ chatManager: ChatManager() }}>
@@ -51,8 +63,15 @@ function App() {
                 selectedFile={selectedFile}
                 files={addedFiles}
                 setSelectedFile={setSelectedFile}
-                addFileClick={() => inputRef.current?.click()}
-                closeFile={(file, idx) => {
+                addFileClick={handleSelectFile.current}
+                closeFile={async (file, idx) => {
+                  // try closing file in the db first
+                  const { error } = await window.fileHandler.closeFile(file.path)
+                  if (error) {
+                    // we still want to close the file in the UI, so ignore the error, but log it
+                    console.error(error)
+                  }
+
                   const newFiles = addedFiles.filter((f, i) => i !== idx)
                   if (!newFiles.length) {
                     setSelectedFile(null)
@@ -71,7 +90,8 @@ function App() {
                     key={index}
                     className={twMerge(
                       'relative z-2',
-                      selectedFile !== file && 'absolute hidden top-0 left-0 w-full h-full -z-10'
+                      selectedFile !== file &&
+                        'absolute opacity-0 pointer-events-none top-0 left-0 -z-10'
                     )}
                   >
                     <PDFDocument file={file} />
@@ -81,25 +101,12 @@ function App() {
 
               {!selectedFile && (
                 <div className="flex mx-auto px-2 w-full max-w-96 items-center justify-center h-full w-full">
-                  <div
-                    className="group cursor-pointer grow"
-                    onClick={() => {
-                      inputRef.current?.click()
-                    }}
-                  >
+                  <div className="group cursor-pointer grow">
                     <div className="border-1 p-2 rounded-md border-gray-300 divide-y divide-gray-300">
                       <Button
                         className="mb-5 w-full justify-center cursor-pointer"
                         variant="primary"
-                        onClick={async () => {
-                          const { files, error } = await window.fileHandler.selectFile()
-                          if (error || !files) {
-                            message.current.error(error || 'Could not open file')
-                            return
-                          }
-                          console.log(files)
-                          setAddedFiles((d) => [...d, ...files])
-                        }}
+                        onClick={handleSelectFile.current}
                       >
                         <div>Click to select files</div>
                       </Button>

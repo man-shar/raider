@@ -24,11 +24,10 @@ export function createSqlTables() {
 
   // a table to store the opened files in a session
   // which will be restored when the app is reopened
-  console.log('Creating open files table')
   const openFilesTable = db.prepare(`
     CREATE TABLE IF NOT EXISTS open_files (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      path TEXT NOT NULL,
+      path TEXT NOT NULL UNIQUE,
       is_url BOOLEAN NOT NULL,
       name TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP

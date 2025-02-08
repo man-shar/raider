@@ -22,7 +22,9 @@ const fileHandler: FileAPI = {
   selectFile: () => ipcRenderer.invoke('file:select'),
   openURL: (url: string) => ipcRenderer.invoke('file:open-url', url),
   updateHighlights: (path: string, highlights: FileHighlights) =>
-    ipcRenderer.invoke('file:update-highlights', path, highlights)
+    ipcRenderer.invoke('file:update-highlights', path, highlights),
+  closeFile: (path: string) => ipcRenderer.invoke('file:close', path),
+  getOpenFiles: () => ipcRenderer.invoke('file:get-last-opened-files')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

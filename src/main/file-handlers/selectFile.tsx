@@ -4,6 +4,30 @@ import { readFileSync } from 'fs'
 import { createOrGetFileFromDb } from '../db/fileUtils'
 
 /**
+ * Reads a file from a path
+ */
+export async function readFileFromPath(filePath: string): Promise<RaiderFile> {
+  const name = filePath.split('/').pop() || filePath
+
+  // try to create a file in the db
+  const { error, file } = createOrGetFileFromDb({
+    path: filePath,
+    name,
+    is_url: 0
+  })
+
+  if (error || !file) throw new Error(error || 'Could not open file')
+
+  const buf = readFileSync(filePath)
+
+  return {
+    ...file,
+    buf: { data: Array.from(new Uint8Array(buf)) },
+    type: 'pdf'
+  }
+}
+
+/**
  * Opens Electron's file selection dialog and returns the list of selected files as RaiderFile objects.
  * If the operation is canceled, returns an empty array.
  * If an error occurs during file reading or database interaction, returns an error message.
@@ -23,24 +47,7 @@ export async function selectFile(
       // read these files as array buffers, convert them to uint8arrays and send back.
       const files = await Promise.all(
         filePaths.map(async (filePath: string) => {
-          const name = filePath.split('/').pop() || filePath
-
-          // try to create a file in the db
-          const { error, file } = createOrGetFileFromDb({
-            path: filePath,
-            name,
-            is_url: 0
-          })
-
-          if (error || !file) throw new Error(error || 'Could not open file')
-
-          const buf = readFileSync(filePath)
-
-          return {
-            ...file,
-            buf: { data: Array.from(new Uint8Array(buf)) },
-            type: 'pdf'
-          }
+          return readFileFromPath(filePath)
         })
       )
 

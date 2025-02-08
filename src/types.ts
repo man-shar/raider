@@ -74,6 +74,8 @@ export interface FileAPI {
     path: string,
     highlights: FileHighlights
   ) => Promise<{ error?: string; newHighlights?: FileHighlights }>
+  closeFile: (path: string) => Promise<{ error?: string }>
+  getOpenFiles: () => Promise<RaiderFile[]>
 }
 
 declare global {

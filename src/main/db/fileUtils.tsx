@@ -1,5 +1,7 @@
 import { FileHighlights, RaiderFile, RaiderFileDbRow } from '@types'
 import { getDb } from '../utils'
+import { readFileFromPath } from '../file-handlers/selectFile'
+import { readFileFromUrl } from '../file-handlers/openURL'
 
 /**
  * Parse the json columns which come in as strings from the database
@@ -25,6 +27,7 @@ export function createOrGetFileFromDb({
   name: string
 }): { error?: string; file?: RaiderFile } {
   const db = getDb()
+  let err = null
   try {
     // check if the file already exists in the table
     // if it does, don't do anything
@@ -40,14 +43,10 @@ export function createOrGetFileFromDb({
       return { file: parseFileRowToRaiderFile(file) }
     }
 
-    const insertStmt = db.prepare(`INSERT INTO files (path, is_url, name) VALUES (?, ?, ?)`)
-    insertStmt.run(path, is_url, name)
-
-    // also add this file to the list of opened files
-    const openFilesTable = db.prepare(
-      `INSERT INTO open_files (path, is_url, name) VALUES (?, ?, ?)`
+    const insertStmt = db.prepare(
+      `INSERT OR IGNORE INTO files (path, is_url, name) VALUES (?, ?, ?)`
     )
-    openFilesTable.run(path, is_url, name)
+    insertStmt.run(path, is_url, name)
 
     // get the inserted row
     const insertedRow = db
@@ -61,8 +60,18 @@ export function createOrGetFileFromDb({
     }
   } catch (error: any) {
     console.error('Error creating file:', error)
+    err = error
     return { error: error.message }
   } finally {
+    if (!err) {
+      console.log(path, is_url, name)
+      console.log('inserting into open_files table')
+      // if there was no error, also add this file to the list of opened files
+      const openFilesTable = db.prepare(
+        `INSERT OR IGNORE INTO open_files (path, is_url, name) VALUES (?, ?, ?)`
+      )
+      openFilesTable.run(path, is_url, name)
+    }
     db.close()
   }
 }
@@ -106,5 +115,57 @@ export function updateFileHighlightsInDb({
 }
 
 /**
- * Gets the highlights of a file. Returns empty array if the file is not found.
+ * Removes a file from the list of open files from the db
  */
+export function closeFileInDb(path: string): { error?: string } {
+  const db = getDb()
+  try {
+    const deleteStmt = db.prepare(`DELETE FROM open_files WHERE path = ?`)
+    deleteStmt.run(path)
+    return {}
+  } catch (error: any) {
+    console.error('Error closing file:', error)
+    return { error: error.message }
+  } finally {
+    db.close()
+  }
+}
+
+/**
+ * Get the last opened files
+ */
+export async function getOpenFilesFromDb(): Promise<{ error?: string; files?: RaiderFile[] }> {
+  const db = getDb()
+  try {
+    const openedFiles = db
+      .prepare<[], { path: string; is_url: number }>(`SELECT path, is_url FROM open_files`)
+      .all()
+    // get information of all these files from the files table
+    let files: RaiderFile[] = []
+
+    for (const openedFile of openedFiles) {
+      const isUrl = openedFile.is_url === 1
+
+      try {
+        const file = isUrl
+          ? await readFileFromUrl(openedFile.path)
+          : await readFileFromPath(openedFile.path)
+
+        console.log(file)
+        files.push(file)
+      } catch (error: any) {
+        console.error('Error reading file:', error)
+        // remove this file from the open files table
+        closeFileInDb(openedFile.path)
+      }
+    }
+
+    console.log(files)
+    return { files }
+  } catch (error: any) {
+    console.error('Error getting last opened files:', error)
+    return { error: error.message }
+  } finally {
+    db.close()
+  }
+}
