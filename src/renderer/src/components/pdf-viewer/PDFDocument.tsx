@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Document, Outline, Page } from 'react-pdf'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
-import { HighlightsType, HighlightType, RaiderFile } from '@types'
+import { FileHighlights, HighlightType, RaiderFile } from '@types'
 import LinkService from 'react-pdf/src/LinkService.js'
 import { ScrollPageIntoViewArgs } from 'react-pdf/src/shared/types.js'
 import { Command, CornerDownLeft } from 'lucide-react'
@@ -22,7 +22,7 @@ interface DocumentRef {
 
 export function PDFDocument({ file }: { file: RaiderFile }) {
   const [numPages, setNumPages] = useState<number>()
-  const [highlights, setHighlights] = useState<HighlightsType>([])
+  const [highlights, setHighlights] = useState<FileHighlights>(file.highlights || [])
 
   const options = useRef({
     cMapUrl: '/cmaps/',
@@ -200,6 +200,11 @@ export function PDFDocument({ file }: { file: RaiderFile }) {
       window.removeEventListener('keydown', handleHighlight)
     }
   }, [handleHighlight, handleChatSend, handleResize, handleSelectionChange])
+
+  // when the highlights change, send the new ones to the backend
+  useEffect(() => {
+    window.fileHandler.updateHighlights(file.path, highlights)
+  }, [highlights])
 
   return (
     <div

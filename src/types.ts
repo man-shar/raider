@@ -47,21 +47,33 @@ export interface HighlightType {
     height: number
   }[]
 }
-export type HighlightsType = HighlightType[]
+export type FileHighlights = HighlightType[]
 
 export interface RaiderFile {
   path: string
+  is_url: number
   name: string
-  buf: { data: Array<number> }
-  metadata: {
-    highlights: HighlightsType
-  }
-  type: string
+  highlights: FileHighlights
+  chat_history: []
+  buf?: { data: Array<number> }
+  type?: string
+}
+
+export interface RaiderFileDbRow {
+  path: string
+  is_url: number
+  name: string
+  highlights: string
+  chat_history: string
 }
 
 export interface FileAPI {
-  selectFile: () => Promise<RaiderFile[]>
-  openURL: (url: string) => Promise<RaiderFile | { error: string }>
+  selectFile: () => Promise<{ files?: RaiderFile[]; error?: string }>
+  openURL: (url: string) => Promise<{ file?: RaiderFile; error?: string }>
+  updateHighlights: (
+    path: string,
+    highlights: FileHighlights
+  ) => Promise<{ error?: string; newHighlights?: FileHighlights }>
 }
 
 declare global {

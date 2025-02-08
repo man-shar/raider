@@ -92,8 +92,13 @@ function App() {
                         className="mb-5 w-full justify-center cursor-pointer"
                         variant="primary"
                         onClick={async () => {
-                          const filePaths = await window.fileHandler.selectFile()
-                          setAddedFiles((d) => [...d, ...filePaths])
+                          const { files, error } = await window.fileHandler.selectFile()
+                          if (error || !files) {
+                            message.current.error(error || 'Could not open file')
+                            return
+                          }
+                          console.log(files)
+                          setAddedFiles((d) => [...d, ...files])
                         }}
                       >
                         <div>Click to select files</div>
@@ -103,14 +108,17 @@ function App() {
                         placeholder="Enter URL"
                         inputClassNames="w-full text-sm focus:outline-none p-2 shadow-none"
                         onPressEnter={async (e) => {
-                          const filePaths = await window.fileHandler.openURL(e.currentTarget.value)
+                          const { file, error } = await window.fileHandler.openURL(
+                            e.currentTarget.value
+                          )
 
-                          if (filePaths.error) {
-                            message.current.error(filePaths.error)
+                          if (error || !file) {
+                            message.current.error(error || 'Could not open URL')
                             return
                           }
 
-                          setAddedFiles((d) => [...d, filePaths])
+                          console.log(file)
+                          setAddedFiles((d) => [...d, file])
                           e.stopPropagation()
                         }}
                       />

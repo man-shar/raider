@@ -6,6 +6,7 @@ import sendChatMessage from './chat-handlers/sendChatMessage'
 import { globals } from './constants'
 import { selectFile } from './file-handlers/selectFile'
 import { setupHandlers } from './startup/setupHandlers'
+import { createSqlTables } from './startup/setupSQLTables'
 
 function createWindow(): void {
   // Create the browser window.
@@ -57,6 +58,8 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  createSqlTables()
 
   setupHandlers()
 

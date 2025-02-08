@@ -6,50 +6,37 @@ export function createSqlTables() {
   // Enable foreign keys
   db.pragma('foreign_keys = ON')
 
-  // Create documents table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS documents (
-      id TEXT PRIMARY KEY,
-      text TEXT NOT NULL,
+  // create a table to store files that have been opened
+  // and a json column that stores the highlights
+  // a json column that stores chat history for this particular file
+  console.log('Creating files table')
+  const filesTable = db.prepare(`
+    CREATE TABLE IF NOT EXISTS files (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      path TEXT NOT NULL,
+      is_url BOOLEAN NOT NULL,
+      name TEXT NOT NULL,
+      highlights JSON NOT NULL DEFAULT '[]',
+      chat_history JSON NOT NULL DEFAULT '[]',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `)
 
-  // Create document chunks table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS document_chunks (
+  // a table to store the opened files in a session
+  // which will be restored when the app is reopened
+  console.log('Creating open files table')
+  const openFilesTable = db.prepare(`
+    CREATE TABLE IF NOT EXISTS open_files (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      document_id TEXT NOT NULL,
-      chunk_text TEXT NOT NULL,
-      embedding BLOB NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+      path TEXT NOT NULL,
+      is_url BOOLEAN NOT NULL,
+      name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `)
 
-  // Create a vector index on the embeddings column
-  db.exec(`
-    CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vss USING vss0(
-      embedding(1536),
-      document_id UNINDEXED,
-      chunk_text UNINDEXED
-    );
-  `)
-
-  // Create a trigger to automatically update the vector index when chunks are inserted
-  db.exec(`
-    CREATE TRIGGER IF NOT EXISTS chunks_ai AFTER INSERT ON document_chunks BEGIN
-      INSERT INTO chunks_vss(rowid, embedding, document_id, chunk_text)
-      VALUES (new.id, new.embedding, new.document_id, new.chunk_text);
-    END;
-  `)
-
-  // Create a trigger to automatically update the vector index when chunks are deleted
-  db.exec(`
-    CREATE TRIGGER IF NOT EXISTS chunks_ad AFTER DELETE ON document_chunks BEGIN
-      DELETE FROM chunks_vss WHERE rowid = old.id;
-    END;
-  `)
+  filesTable.run()
+  openFilesTable.run()
 
   // Close the database connection
   db.close()

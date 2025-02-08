@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { ChatAPI, ChatMessageType, FileAPI, MessageDetails } from '../types'
+import { ChatAPI, ChatMessageType, FileAPI, FileHighlights, MessageDetails } from '../types'
 
 // Custom APIs for renderer
 const chat: ChatAPI = {
@@ -20,7 +20,9 @@ const chat: ChatAPI = {
 
 const fileHandler: FileAPI = {
   selectFile: () => ipcRenderer.invoke('file:select'),
-  openURL: (url: string) => ipcRenderer.invoke('file:open-url', url)
+  openURL: (url: string) => ipcRenderer.invoke('file:open-url', url),
+  updateHighlights: (path: string, highlights: FileHighlights) =>
+    ipcRenderer.invoke('file:update-highlights', path, highlights)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
