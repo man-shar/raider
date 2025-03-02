@@ -1,6 +1,16 @@
 @import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
+
 @import './pdf-outline.css';
 
 .scrollbar-hidden {
@@ -14,4 +24,8 @@
 
 .scrollbar-hidden *::-webkit-scrollbar {
   display: none;
+}
+
+kbd {
+  @apply rounded-md p-1 bg-white font-mono text-xs font-bold border border-b-2 border-gray-300 mr-1 flex items-center justify-center gap-1;
 }

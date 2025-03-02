@@ -2,18 +2,18 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import sendChatMessage from './chat-handlers/sendChatMessage'
 import { globals } from './constants'
-import { selectFile } from './file-handlers/selectFile'
 import { setupHandlers } from './startup/setupHandlers'
 import { createSqlTables } from './startup/setupSQLTables'
 
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    // width: 900,
+    // height: 670,
     show: false,
+    // titleBarStyle: 'hidden',
+    titleBarOverlay: true,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {

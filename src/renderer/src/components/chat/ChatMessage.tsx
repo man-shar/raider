@@ -1,17 +1,16 @@
+import { SpinningLoader } from '@defogdotai/agents-ui-components/core-ui'
 import { ChatMessageType } from '@types'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export function ChatMessage({ message }: { message: ChatMessageType }) {
   // listen to webcontents.send for this id and render the message
-  const responseContent = useRef('')
+  const [responseContent, setResponseContent] = useState('')
 
   const responseContainerRef = useRef<HTMLDivElement>(null)
 
   const messageCallback = useCallback((chunk: string) => {
     if (!responseContainerRef.current) return
-    responseContent.current += chunk
-
-    responseContainerRef.current.innerText = responseContent.current
+    setResponseContent((prev) => prev + chunk)
   }, [])
 
   useEffect(() => {
@@ -35,11 +34,16 @@ export function ChatMessage({ message }: { message: ChatMessageType }) {
       </div>
       <div className="">
         <div className="text-xs text-gray-500 mb-2">Response</div>
-        <div
-          ref={responseContainerRef}
-          className="text-wrap break-all
-"
-        ></div>
+        <div ref={responseContainerRef} className="text-wrap break-all">
+          {!responseContent ? (
+            <div className="flex items-center gap-2">
+              <SpinningLoader classNames="mr-0 w-4" />
+              Loading
+            </div>
+          ) : (
+            responseContent
+          )}
+        </div>
       </div>
     </div>
   )

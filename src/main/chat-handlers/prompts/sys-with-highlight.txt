@@ -1,0 +1,7 @@
+A user is trying to read a file, and has a question about it. You will be given the full text of the file, the text the user has highlighted from the file, and the user's question about that bit of text. 
+You should answer the question based on what the use has highlighteded, keeping in mind the contents of the pdf.
+
+Here is the file text:
+```
+{fileText}
+```

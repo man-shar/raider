@@ -1,4 +1,4 @@
-import { ChatManager } from '@renderer/components/ChatManager'
+import { ChatManager } from '../components/chat/ChatManager'
 import { createContext } from 'react'
 
 export interface AppContextType {

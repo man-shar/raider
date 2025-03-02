@@ -5,6 +5,7 @@ import { openURL } from '../file-handlers/openURL'
 import { updateFileHighlights } from '../file-handlers/updateHighlights'
 import { closeFile } from '../file-handlers/closeFile'
 import { getOpenFiles } from '../file-handlers/getOpenFiles'
+import { updateFileDetails } from '../file-handlers/updateFileDetails'
 
 export function setupHandlers() {
   // chat handlers
@@ -16,4 +17,5 @@ export function setupHandlers() {
   ipcMain.handle('file:update-highlights', updateFileHighlights)
   ipcMain.handle('file:close', closeFile)
   ipcMain.handle('file:get-last-opened-files', getOpenFiles)
+  ipcMain.handle('file:update-details', updateFileDetails)
 }

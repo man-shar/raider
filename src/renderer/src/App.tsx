@@ -1,12 +1,12 @@
 import type { RaiderFile } from '@types'
 import { PDFDocument } from './components/pdf-viewer/PDFDocument'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 import { twMerge } from 'tailwind-merge'
-import { ChatBar } from './components/ChatBar'
-import { Nav } from './components/Nav'
+import { ChatBar } from './components/chat/ChatBar'
+import { Nav } from './components/utils/Nav'
 import {
   Button,
   Input,
@@ -15,7 +15,9 @@ import {
   MessageMonitor
 } from '@defogdotai/agents-ui-components/core-ui'
 import { AppContext } from './context/AppContext'
-import { ChatManager } from './components/ChatManager'
+import { ChatManager } from './components/chat/ChatManager'
+import { Footer } from './components/footer/Footer'
+import { PDFManager } from './components/pdf-viewer/PDFManager'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -23,46 +25,70 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString()
 
 function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
-  const [addedFiles, setAddedFiles] = useState<RaiderFile[]>(initialFiles || [])
-  const [selectedFile, setSelectedFile] = useState<RaiderFile | null>(
-    initialFiles.length ? initialFiles[0] : null
+  const [fileManagers, setFileManagers] = useState<PDFManager[]>(
+    (initialFiles || []).map((file) => PDFManager(file))
+  )
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(
+    initialFiles.length ? initialFiles[0].path : null
   )
 
+  const selectedFileManager = useMemo(() => {
+    if (!selectedFilePath) return null
+    return fileManagers.find((m) => m.getFile().path === selectedFilePath) || null
+  }, [selectedFilePath])
+
+  const { current: chatManager } = useRef(ChatManager())
+
   useEffect(() => {
-    if (!selectedFile) {
-      setSelectedFile(addedFiles[0])
+    if (!selectedFilePath) {
+      setSelectedFilePath(fileManagers[0].getFile().path)
     }
-  }, [addedFiles])
+  }, [fileManagers])
+
+  const [fileTexts, setFileTexts] = useState<{
+    [path: string]: { fullText: string | null; pageWiseText: { [page: number]: string } }
+  }>(
+    initialFiles.reduce((acc, file) => {
+      acc[file.path] = {
+        fullText: file.details.fullText || null,
+        pageWiseText: file.details.pageWiseText || null
+      }
+      return acc
+    }, {})
+  )
 
   const message = useRef(MessageManager())
 
   const handleSelectFile = useRef(async () => {
-    console.log('selecting file')
     const { files, error } = await window.fileHandler.selectFile()
     if (error || !files) {
       message.current.error(error || 'Could not open file')
       return
     }
-    console.log(files)
-    setAddedFiles((d) => [...d, ...files])
+    setFileManagers((d) => [...d, ...files.map((file) => PDFManager(file))])
   })
 
   return (
-    <AppContext.Provider value={{ chatManager: ChatManager() }}>
+    <AppContext.Provider value={{ chatManager }}>
       <MessageManagerContext.Provider value={message.current}>
         <MessageMonitor />
-        <div className="prose min-w-screen h-screen relative">
-          <div className="flex flex-row divide-x divide-gray-200 w-full h-full ">
-            {addedFiles.length ? (
-              <div className="sidebar min-w-96 max-w-96 h-screen bg-white">
-                <ChatBar />
+        <div className="prose min-w-screen h-screen relative flex flex-col max-h-full">
+          <div className="flex flex-row divide-x divide-gray-200 w-full min-h-0 grow">
+            {fileManagers.length ? (
+              <div className="sidebar min-w-96 max-w-96 h-full bg-white">
+                {selectedFilePath && (
+                  <ChatBar
+                    fileManager={selectedFileManager}
+                    fileText={fileTexts?.[selectedFilePath]?.fullText || null}
+                  />
+                )}
               </div>
             ) : null}
             <div className="view-ctr grow overflow-scroll">
               <Nav
-                selectedFile={selectedFile}
-                files={addedFiles}
-                setSelectedFile={setSelectedFile}
+                selectedFilePath={selectedFilePath}
+                fileManagers={fileManagers}
+                setSelectedFilePath={setSelectedFilePath}
                 addFileClick={handleSelectFile.current}
                 closeFile={async (file, idx) => {
                   // try closing file in the db first
@@ -72,35 +98,60 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
                     console.error(error)
                   }
 
-                  const newFiles = addedFiles.filter((f, i) => i !== idx)
-                  if (!newFiles.length) {
-                    setSelectedFile(null)
+                  const newFilesManagers = fileManagers.filter((_, i) => i !== idx)
+                  if (!newFilesManagers.length) {
+                    setSelectedFilePath(null)
                   } else {
-                    setSelectedFile(
-                      newFiles[idx + 1 > newFiles.length - 1 ? newFiles.length - 1 : idx + 1]
-                    )
+                    const newIdx =
+                      idx + 1 > newFilesManagers.length - 1 ? newFilesManagers.length - 1 : idx + 1
+                    setSelectedFilePath(newFilesManagers[newIdx].filePath)
                   }
-                  setAddedFiles(newFiles)
+                  setFileManagers(newFilesManagers)
                 }}
               />
 
               <div className="files relative">
-                {addedFiles.map((file, index) => (
-                  <div
-                    key={index}
-                    className={twMerge(
-                      'relative z-2',
-                      selectedFile !== file &&
-                        'absolute opacity-0 pointer-events-none top-0 left-0 -z-10'
-                    )}
-                  >
-                    <PDFDocument file={file} />
-                  </div>
-                ))}
+                {fileManagers.map((mgr, index) => {
+                  const file = mgr.getFile()
+
+                  return (
+                    <div
+                      key={index}
+                      className={twMerge(
+                        'relative z-2',
+                        selectedFilePath !== file.path &&
+                          'absolute opacity-0 pointer-events-none top-0 left-0 -z-10'
+                      )}
+                    >
+                      <PDFDocument
+                        pdfManager={mgr}
+                        onTextExtracted={async (fullText, pageWiseText) => {
+                          await window.fileHandler.updateFileDetails(
+                            file.path,
+                            file.is_url,
+                            file.name,
+                            {
+                              fullText,
+                              pageWiseText
+                            }
+                          )
+
+                          setFileTexts((d) => ({
+                            ...d,
+                            [file.path]: {
+                              fullText,
+                              pageWiseText
+                            }
+                          }))
+                        }}
+                      />
+                    </div>
+                  )
+                })}
               </div>
 
-              {!selectedFile && (
-                <div className="flex mx-auto px-2 w-full max-w-96 items-center justify-center h-full w-full">
+              {!selectedFilePath && (
+                <div className="flex mx-auto px-2 w-full max-w-96 items-center justify-center h-full">
                   <div className="group cursor-pointer grow">
                     <div className="border-1 p-2 rounded-md border-gray-300 divide-y divide-gray-300">
                       <Button
@@ -124,8 +175,7 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
                             return
                           }
 
-                          console.log(file)
-                          setAddedFiles((d) => [...d, file])
+                          setFileManagers((d) => [...d, PDFManager(file)])
                           e.stopPropagation()
                         }}
                       />
@@ -135,6 +185,7 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
               )}
             </div>
           </div>
+          <Footer />
         </div>
       </MessageManagerContext.Provider>
     </AppContext.Provider>

@@ -3,7 +3,7 @@ import { ElectronAPI } from '@electron-toolkit/preload'
 export interface ChatMessageType {
   id: string
   userInput: string
-  highlightedText: string
+  highlightedText: string | null
   timestamp: string
   response: string
   messages: { role: string; content: string }[]
@@ -18,7 +18,10 @@ export interface Chat {
 
 export interface MessageDetails {
   userInput: string
-  highlightedText: string
+  highlightedText: string | null
+  highlightId: string | null
+  filePath: string | null
+  fileText: string | null
 }
 
 export interface ChatAPI {
@@ -35,10 +38,16 @@ export interface ChatAPI {
 
 // ---- File related types
 export interface HighlightType {
+  // A highlight can be of two types:
+  // 1. Simple highlight - just highlighted text without any conversation
+  // 2. Conversation highlight - highlighted text that has an associated chat conversation
+  id: string
   fullText: string
   comment: string
   originalViewportWidth: number
   pageNumber: number
+  has_conversation?: boolean
+  conversation_id?: string
   // one highlight can span multiple lines/pages
   // so have to store the individual chunks
   chunks: {
@@ -48,16 +57,19 @@ export interface HighlightType {
     height: number
   }[]
 }
-export type FileHighlights = HighlightType[]
+
+export type FileDetailsKeys = 'fullText' | 'pageWiseText'
+export type FileDetails = { [key in FileDetailsKeys]: any }
 
 export interface RaiderFile {
   path: string
   is_url: number
   name: string
-  highlights: FileHighlights
+  highlights: HighlightType[]
   chat_history: []
   buf?: { data: Array<number> }
   type?: string
+  details: FileDetails
 }
 
 export interface RaiderFileDbRow {
@@ -66,6 +78,7 @@ export interface RaiderFileDbRow {
   name: string
   highlights: string
   chat_history: string
+  details: string
 }
 
 export interface FileAPI {
@@ -73,10 +86,16 @@ export interface FileAPI {
   openURL: (url: string) => Promise<{ file?: RaiderFile; error?: string }>
   updateHighlights: (
     path: string,
-    highlights: FileHighlights
-  ) => Promise<{ error?: string; newHighlights?: FileHighlights }>
+    highlights: HighlightType[]
+  ) => Promise<{ error?: string; newHighlights?: HighlightType[] }>
   closeFile: (path: string) => Promise<{ error?: string }>
   getOpenFiles: () => Promise<RaiderFile[]>
+  updateFileDetails: (
+    path: string,
+    is_url: number,
+    name: string,
+    details: FileDetails
+  ) => Promise<{ error?: string }>
 }
 
 declare global {
@@ -85,4 +104,5 @@ declare global {
     chat: ChatAPI
     fileHandler: FileAPI
   }
+  type Listener = () => void
 }

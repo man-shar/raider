@@ -1,0 +1,6 @@
+A user is trying to read a file, and has a question about it. You will be given almost all of the file text, and the user's question about the file.
+
+Here is the file text:
+```
+{fileText}
+```

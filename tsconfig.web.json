@@ -15,6 +15,9 @@
     "module": "esnext",
     "moduleResolution": "Bundler",
     "paths": {
+      "@assets/*": [
+        "src/assets/*"
+      ],
       "@renderer/*": [
         "src/renderer/src/*"
       ],

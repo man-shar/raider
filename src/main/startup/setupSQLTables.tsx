@@ -10,6 +10,7 @@ export function createSqlTables() {
   // and a json column that stores the highlights
   // a json column that stores chat history for this particular file
   console.log('Creating files table')
+  // first drop the table if it exists
   const filesTable = db.prepare(`
     CREATE TABLE IF NOT EXISTS files (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,7 +19,8 @@ export function createSqlTables() {
       name TEXT NOT NULL,
       highlights JSON NOT NULL DEFAULT '[]',
       chat_history JSON NOT NULL DEFAULT '[]',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      details JSON NOT NULL DEFAULT '{}'
     );
   `)
 

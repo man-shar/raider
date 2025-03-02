@@ -10,7 +10,35 @@ function parseFileRowToRaiderFile(row: RaiderFileDbRow): RaiderFile {
   return {
     ...row,
     highlights: JSON.parse(row.highlights),
-    chat_history: JSON.parse(row.chat_history)
+    chat_history: JSON.parse(row.chat_history),
+    details: JSON.parse(row.details)
+  }
+}
+
+/** Updates the details of a file in the database */
+export function updateFileDetailsInDb({
+  path,
+  is_url,
+  name,
+  details
+}: {
+  path: string
+  is_url: number
+  name: string
+  details: { [key: string]: any }
+}): { error?: string } {
+  const db = getDb()
+  try {
+    const updateStmt = db.prepare(
+      `UPDATE files SET details = ? WHERE path = ? AND is_url = ? AND name = ?`
+    )
+    updateStmt.run(JSON.stringify(details), path, is_url, name)
+    return {}
+  } catch (error: any) {
+    console.error('Error updating file details:', error)
+    return { error: error.message }
+  } finally {
+    db.close()
   }
 }
 
@@ -95,7 +123,7 @@ export function updateFileHighlightsInDb({
     }
 
     const updateStmt = db.prepare(`UPDATE files SET highlights = ? WHERE path = ?`)
-    const result = updateStmt.run(JSON.stringify(highlights), path)
+    updateStmt.run(JSON.stringify(highlights), path)
 
     // return the new highlights
     const updatedFile = db
@@ -151,7 +179,6 @@ export async function getOpenFilesFromDb(): Promise<{ error?: string; files?: Ra
           ? await readFileFromUrl(openedFile.path)
           : await readFileFromPath(openedFile.path)
 
-        console.log(file)
         files.push(file)
       } catch (error: any) {
         console.error('Error reading file:', error)
@@ -160,7 +187,6 @@ export async function getOpenFilesFromDb(): Promise<{ error?: string; files?: Ra
       }
     }
 
-    console.log(files)
     return { files }
   } catch (error: any) {
     console.error('Error getting last opened files:', error)

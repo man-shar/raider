@@ -21,8 +21,6 @@ function Startup() {
     init()
   }, [])
 
-  console.log(openFiles)
-
   return ready ? <App initialFiles={openFiles} /> : null
 }
 

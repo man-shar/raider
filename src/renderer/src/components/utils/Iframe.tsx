@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import tw from '../assets/tooltip.css?raw'
+import tw from '@assets/tooltip.css?raw'
 
 export const IFrame = forwardRef<HTMLIFrameElement, React.ComponentPropsWithoutRef<'iframe'>>(
   ({ children, ...props }, ref) => {

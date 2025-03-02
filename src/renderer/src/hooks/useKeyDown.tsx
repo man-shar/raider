@@ -4,24 +4,45 @@ export const useKeyDown = (
   {
     key,
     ctrl = false,
+    meta = false,
+    shift = false,
+    alt = false,
+    target,
     callback = () => {}
   }: {
     key: string
     ctrl?: boolean
+    meta?: boolean
+    shift?: boolean
+    alt?: boolean
+    target?: HTMLElement
     callback: () => void
   },
   deps: any[] = []
 ) => {
   useEffect(() => {
-    const keyDownHandler = (event: KeyboardEvent) => {
-      if (event.key === key && (!ctrl || event.ctrlKey || event.metaKey)) {
+    const targetResolved = target ?? document
+    const keyDownHandler = (event: Event) => {
+      const keyboardEvent = event as KeyboardEvent
+      const isMac = window.navigator.platform.includes('Mac')
+
+      if (
+        keyboardEvent.key === key &&
+        ((meta && (isMac ? keyboardEvent.metaKey : keyboardEvent.ctrlKey)) ||
+          (!meta && !(isMac ? keyboardEvent.metaKey : keyboardEvent.ctrlKey))) &&
+        ((ctrl && keyboardEvent.ctrlKey) || (!ctrl && !keyboardEvent.ctrlKey)) &&
+        ((shift && keyboardEvent.shiftKey) || (!shift && !keyboardEvent.shiftKey)) &&
+        ((alt && keyboardEvent.altKey) || (!alt && !keyboardEvent.altKey))
+      ) {
+        keyboardEvent.stopPropagation()
+        keyboardEvent.preventDefault()
         callback()
       }
     }
 
-    window.addEventListener('keydown', keyDownHandler)
+    targetResolved.addEventListener('keydown', keyDownHandler)
     return () => {
-      window.removeEventListener('keydown', keyDownHandler)
+      targetResolved.removeEventListener('keydown', keyDownHandler)
     }
   }, [key, callback, ...deps])
 }
