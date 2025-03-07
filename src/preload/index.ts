@@ -5,7 +5,7 @@ import {
   ChatMessageType,
   FileAPI,
   FileDetails,
-  FileHighlights,
+  HighlightType,
   MessageDetails
 } from '../types'
 
@@ -28,7 +28,7 @@ const chat: ChatAPI = {
 const fileHandler: FileAPI = {
   selectFile: () => ipcRenderer.invoke('file:select'),
   openURL: (url: string) => ipcRenderer.invoke('file:open-url', url),
-  updateHighlights: (path: string, highlights: FileHighlights) =>
+  updateHighlights: (path: string, highlights: HighlightType[]) =>
     ipcRenderer.invoke('file:update-highlights', path, highlights),
   closeFile: (path: string) => ipcRenderer.invoke('file:close', path),
   getOpenFiles: () => ipcRenderer.invoke('file:get-last-opened-files'),

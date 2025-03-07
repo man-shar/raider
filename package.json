@@ -22,7 +22,7 @@
     "build:linux": "electron-vite build && electron-builder --linux"
   },
   "dependencies": {
-    "@defogdotai/agents-ui-components": "^1.1.40",
+    "@defogdotai/agents-ui-components": "^1.5.0",
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^3.0.0",
     "@floating-ui/react": "^0.27.4",

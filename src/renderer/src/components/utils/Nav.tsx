@@ -26,14 +26,17 @@ export function Nav({
             <button
               key={index}
               className={twMerge(
-                'bg-gray-100 px-2 text-xs flex flex-row items-center cursor-pointer border-t-2 border-t-transparent',
+                'bg-gray-100 px-2 text-xs flex flex-row items-center cursor-pointer border-t-2 border-t-transparent w-40',
                 selectedFilePath === file.path && 'bg-gray-200 border-t-2 border-t-blue-400'
               )}
+              title={file.name}
               onClick={() => setSelectedFilePath(file.path)}
             >
-              <span className="">{file.name}</span>
+              <span className="max-w-full overflow-hidden overflow-ellipsis whitespace-nowrap">
+                {file.name}
+              </span>
               <X
-                className="w-3 ml-auto inline hover:stroke-3"
+                className="min-w-3 max-w-3 ml-auto inline hover:stroke-3"
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()

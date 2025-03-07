@@ -33,14 +33,14 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
   )
 
   const selectedFileManager = useMemo(() => {
-    if (!selectedFilePath) return null
+    if (!selectedFilePath || !fileManagers || !fileManagers.length) return null
     return fileManagers.find((m) => m.getFile().path === selectedFilePath) || null
-  }, [selectedFilePath])
+  }, [selectedFilePath, fileManagers])
 
   const { current: chatManager } = useRef(ChatManager())
 
   useEffect(() => {
-    if (!selectedFilePath) {
+    if (!selectedFilePath && fileManagers.length) {
       setSelectedFilePath(fileManagers[0].getFile().path)
     }
   }, [fileManagers])

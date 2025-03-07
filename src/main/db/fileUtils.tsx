@@ -1,4 +1,4 @@
-import { FileHighlights, RaiderFile, RaiderFileDbRow } from '@types'
+import { HighlightType, RaiderFile, RaiderFileDbRow } from '@types'
 import { getDb } from '../utils'
 import { readFileFromPath } from '../file-handlers/selectFile'
 import { readFileFromUrl } from '../file-handlers/openURL'
@@ -112,8 +112,8 @@ export function updateFileHighlightsInDb({
   highlights
 }: {
   path: string
-  highlights: FileHighlights
-}): { error?: string; newHighlights?: FileHighlights } {
+  highlights: HighlightType[]
+}): { error?: string; newHighlights?: HighlightType[] } {
   const db = getDb()
   try {
     // if the file doesn't exist, throw an error

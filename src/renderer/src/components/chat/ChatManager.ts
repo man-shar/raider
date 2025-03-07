@@ -128,6 +128,10 @@ export function ChatManager(): ChatManager {
     setLoading(true)
     const chatMessage = await window.chat.sendChatMessage(details)
 
+    if ('error' in chatMessage) {
+      throw new Error(chatMessage.error)
+    }
+
     messages = [...messages, chatMessage]
 
     setLoading(false)

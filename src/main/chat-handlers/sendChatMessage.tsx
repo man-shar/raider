@@ -4,8 +4,8 @@ import { startOaiChat } from './openai'
 
 export default async function sendChatMessage(
   _event: IpcMainInvokeEvent,
-  { userInput, highlightedText, fileText }: MessageDetails
-): Promise<ChatMessageType> {
+  { userInput, highlightedText, highlightId, file, fileText }: MessageDetails
+): Promise<ChatMessageType | { error: string }> {
   // give this message an id
-  return startOaiChat({ userInput, highlightedText, fileText })
+  return startOaiChat({ userInput, highlightedText, highlightId, file, fileText })
 }

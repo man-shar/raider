@@ -4,6 +4,7 @@ export interface ChatMessageType {
   id: string
   userInput: string
   highlightedText: string | null
+  highlightId: string | null
   timestamp: string
   response: string
   messages: { role: string; content: string }[]
@@ -20,12 +21,12 @@ export interface MessageDetails {
   userInput: string
   highlightedText: string | null
   highlightId: string | null
-  filePath: string | null
+  file: RaiderFile | null
   fileText: string | null
 }
 
 export interface ChatAPI {
-  sendChatMessage: (details: MessageDetails) => Promise<ChatMessageType>
+  sendChatMessage: (details: MessageDetails) => Promise<ChatMessageType | { error: string }>
   /**
    * Adds a listener for the given `messageId` and calls the `callback`
    * function whenever a chunk of data is received. The callback function

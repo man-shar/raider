@@ -9,6 +9,7 @@
     "src/renderer/src/types/*.d.ts"
   ],
   "compilerOptions": {
+    "useUnknownInCatchVariables": false,
     "composite": true,
     "jsx": "react-jsx",
     "baseUrl": ".",

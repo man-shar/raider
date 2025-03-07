@@ -73,7 +73,7 @@ export function ChatBar({
           chatManager
             .sendChatMessage({
               userInput: val,
-              filePath: activeFile?.path || null,
+              file: activeFile,
               highlightedText: activeHighlight?.fullText || null,
               highlightId: activeHighlight?.id || null,
               fileText: fileText
