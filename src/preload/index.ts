@@ -26,7 +26,14 @@ const chat: ChatAPI = {
       eventTargetRef.removeAllListeners(conversationId)
       console.log('after unsubbing', eventTargetRef.listeners(conversationId))
     }
-  }
+  },
+  
+  // API key and model management
+  setApiKey: (key: string) => ipcRenderer.invoke('chat:set-api-key', key),
+  getApiKey: () => ipcRenderer.invoke('chat:get-api-key'),
+  setModel: (model: string) => ipcRenderer.invoke('chat:set-model', model),
+  getModel: () => ipcRenderer.invoke('chat:get-model'),
+  getAvailableModels: () => ipcRenderer.invoke('chat:get-available-models')
 }
 
 const fileHandler: FileAPI = {

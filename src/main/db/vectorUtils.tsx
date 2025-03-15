@@ -3,10 +3,14 @@ import type { Tiktoken } from 'tiktoken'
 import { ENCODING_MODEL } from '../constants'
 import { getDb } from '../utils'
 import OpenAI from 'openai'
+import { getApiKey } from '../chat-handlers/openai'
 
-const client = new OpenAI({
-  apiKey: import.meta.env.MAIN_VITE_OPENAI_API_KEY // This is the default and can be omitted
-})
+// Function to create a new OpenAI client with the current API key
+const createClient = () => {
+  return new OpenAI({
+    apiKey: getApiKey()
+  })
+}
 
 export interface Document {
   id: string
@@ -48,6 +52,7 @@ export async function vectorize(text: string): Promise<{ id: string; chunks: Doc
     }
 
     // Get embeddings for each chunk
+    const client = createClient()
     const response = await client.embeddings.create({
       model: ENCODING_MODEL,
       // @ts-ignore

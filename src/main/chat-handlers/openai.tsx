@@ -7,12 +7,62 @@ import basicSystemPrompt from './prompts/basic-sys.txt?raw'
 import basicUserPrompt from './prompts/basic-user.txt?raw'
 import OpenAI from 'openai'
 import { BrowserWindow } from 'electron'
-import { globals } from '../constants'
+import { DEFAULT_MODEL, globals } from '../constants'
 import { addOrUpdateConversationInDb } from '../db/chatUtils'
 
-const client = new OpenAI({
-  apiKey: import.meta.env.MAIN_VITE_OPENAI_API_KEY // This is the default and can be omitted
-})
+// Create OpenAI client with a function that dynamically gets the API key
+let apiKey = import.meta.env.MAIN_VITE_OPENAI_API_KEY || ''
+let selectedModel = DEFAULT_MODEL
+
+export function setApiKey(key: string) {
+  apiKey = key
+  return { success: true }
+}
+
+export function getApiKey() {
+  return apiKey
+}
+
+export function setModel(model: string) {
+  selectedModel = model
+  return { success: true }
+}
+
+export function getModel() {
+  return selectedModel
+}
+
+// Function to create a new OpenAI client with the current API key
+const createClient = () => {
+  return new OpenAI({
+    apiKey: apiKey
+  })
+}
+
+// Get available models from OpenAI
+export async function getAvailableModels() {
+  try {
+    if (!apiKey) {
+      return { models: [], error: 'API key not set' }
+    }
+
+    const client = createClient()
+    const response = await client.models.list()
+    
+    // Filter to include only chat completion models
+    const chatModels = response.data
+      .filter(model => model.id.includes('gpt'))
+      .map(model => ({
+        id: model.id,
+        name: model.id
+      }))
+    
+    return { models: chatModels, error: null }
+  } catch (error) {
+    console.error('Error fetching models:', error)
+    return { models: [], error: error.message }
+  }
+}
 
 const prices = {
   // these are cost in dollars per million tokens
@@ -22,8 +72,6 @@ const prices = {
     output: 0.6
   }
 }
-
-const model = 'gpt-4o-mini'
 
 async function startOaiStream(
   callback: (chunk: string) => void,
@@ -37,6 +85,9 @@ async function startOaiStream(
   const mainWindow = BrowserWindow.fromId(mainWindowId)
   
   try {
+    const client = createClient()
+    const model = selectedModel || DEFAULT_MODEL
+    
     const stream = await client.chat.completions.create({
       model: model,
       // @ts-ignore
@@ -84,10 +135,13 @@ async function startOaiStream(
     i++
   }
 
+  // Get pricing for the model or use default pricing
+  const modelPrices = prices[model] || prices[DEFAULT_MODEL]
+
   const totalCost =
-    ((tokens.prompt - tokens.cachedInput) * prices[model].input +
-      tokens.completion * prices[model].output +
-      tokens.cachedInput * prices[model].cachedInput) /
+    ((tokens.prompt - tokens.cachedInput) * modelPrices.input +
+      tokens.completion * modelPrices.output +
+      tokens.cachedInput * modelPrices.cachedInput) /
     1_000_000
 
   console.log(`Total cost: $${totalCost}`)
@@ -150,6 +204,8 @@ export function startOaiChat({
 }: MessageDetails): ConversationType | { error: string } {
   try {
     if (!file) throw new Error('File not found')
+    if (!apiKey) throw new Error('API key not set. Please configure your OpenAI API key in settings.')
+    
     // starts a new chat request to openai
     // returns a chat message with an id, and the prompt that was sent
     // streams in the responses as they come in
@@ -222,6 +278,8 @@ export function startOaiChat({
     if (!mainWindow) throw new Error('No main window found')
     if (!mainWindowId) throw new Error('No main window id found')
 
+    const model = selectedModel || DEFAULT_MODEL
+    
     let updatedConversation: ConversationType = conversation
       ? {
           ...conversation,
@@ -232,7 +290,7 @@ export function startOaiChat({
           messages: messagesForOpenAi,
           timestamp: new Date().toISOString(),
           metadata: {
-            model_name: 'gpt-4o-mini'
+            model_name: model
           }
         }
 

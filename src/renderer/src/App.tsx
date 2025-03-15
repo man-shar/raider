@@ -14,11 +14,9 @@ import {
   MessageManagerContext,
   MessageMonitor
 } from '@defogdotai/agents-ui-components/core-ui'
-import { AppContext } from './context/AppContext'
-import { ChatManager } from './components/chat/ChatManager'
+import { AppContextProvider } from './context/AppContext'
 import { Footer } from './components/footer/Footer'
 import { PDFManager } from './components/pdf-viewer/PDFManager'
-import { createStatusManager } from './components/utils/StatusManager'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -38,8 +36,9 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
     return fileManagers.find((m) => m.getFile().path === selectedFilePath) || null
   }, [selectedFilePath, fileManagers])
 
-  const { current: chatManager } = useRef(ChatManager())
-  const { current: statusManager } = useRef(createStatusManager())
+  // These are now provided by AppContextProvider
+  // const { current: chatManager } = useRef(ChatManager())
+  // const { current: statusManager } = useRef(createStatusManager())
 
   useEffect(() => {
     if (!selectedFilePath && fileManagers.length) {
@@ -71,7 +70,7 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
   })
 
   return (
-    <AppContext.Provider value={{ chatManager, statusManager }}>
+    <AppContextProvider>
       <MessageManagerContext.Provider value={message.current}>
         <MessageMonitor />
         <div className="prose min-w-screen h-screen relative flex flex-col max-h-full">
@@ -190,7 +189,7 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
           <Footer />
         </div>
       </MessageManagerContext.Provider>
-    </AppContext.Provider>
+    </AppContextProvider>
   )
 }
 

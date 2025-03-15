@@ -36,6 +36,11 @@ export interface MessageDetails {
   fileText: string | null
 }
 
+export interface OpenAIModel {
+  id: string
+  name: string
+}
+
 export interface ChatAPI {
   sendChatMessage: (details: MessageDetails) => Promise<ConversationType | { error: string }>
   /**
@@ -46,6 +51,13 @@ export interface ChatAPI {
    * Returns a function that can be called to unsubscribe the listener.
    */
   onChunkReceived: (messageId: string, callback: (chunk: string) => void) => () => void
+  
+  // API key and model management
+  setApiKey: (key: string) => Promise<{ success: boolean }>
+  getApiKey: () => Promise<string>
+  setModel: (model: string) => Promise<{ success: boolean }>
+  getModel: () => Promise<string>
+  getAvailableModels: () => Promise<{ models: OpenAIModel[], error: string | null }>
 }
 
 // ---- File related types
