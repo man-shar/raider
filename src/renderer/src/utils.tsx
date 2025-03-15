@@ -1,4 +1,4 @@
-import { HighlightType } from '@types'
+import { ConversationType, HighlightType } from '@types'
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   var binary = ''
@@ -73,4 +73,12 @@ export function createHighlightFromSelection({
   }
 
   return highlight
+}
+
+export function isLastMessageAssistant(conversation: ConversationType): boolean {
+  if (!conversation.messages || !conversation.messages.length) return false
+
+  if (conversation.messages.slice(-1)[0].role !== 'assistant') return false
+
+  return true
 }

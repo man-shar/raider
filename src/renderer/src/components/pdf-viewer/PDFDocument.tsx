@@ -9,7 +9,7 @@ import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
 import debounce from 'lodash.debounce'
 import { Highlights } from './Highlights'
-import KeyIcon from '../utils/KeyIcon'
+import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
 import { createHighlightFromSelection } from '@renderer/utils'
 import { useClick } from '@renderer/hooks/useClick'
 import { AppContext } from '@renderer/context/AppContext'
@@ -44,33 +44,71 @@ export function PDFDocument({
     standardFontDataUrl: '/standard_fonts/'
   })
 
-  const onDocumentLoadSuccess = useCallback(async (pdf: PDFDocumentProxy) => {
-    setNumPages(pdf.numPages)
+  const { statusManager } = useContext(AppContext)
 
-    if (!file.details.fullText) {
-      const start = performance.now()
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i)
-        try {
-          pageWiseText.current[i] = (await page.getTextContent()).items
-            .map((item) => item.str)
-            .join('')
-        } catch (error) {
-          pageWiseText.current[i] = '\n\n Error extracting page text for page number ' + i
-          console.log('Error extracting page text for page number', i)
+  const onDocumentLoadSuccess = useCallback(
+    async (pdf: PDFDocumentProxy) => {
+      setNumPages(pdf.numPages)
+
+      if (!file.details.fullText) {
+        const start = performance.now()
+
+        const fileName = file.name || 'PDF'
+
+        // Create a parent task for text extraction
+        const taskId = statusManager.addTask({
+          type: 'pdf_text_extraction',
+          label: `Extracting text from ${fileName.length > 40 ? fileName.slice(0, 40) + '...' : fileName}`,
+          progress: 0
+        })
+
+        statusManager.startTask(taskId)
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          // Update progress as we go
+          statusManager.updateTask(taskId, {
+            progress: Math.round(((i - 1) / pdf.numPages) * 100)
+          })
+
+          // Create subtask for each page
+          const pageTaskId = statusManager.addSubtask(taskId, {
+            type: 'pdf_page_extraction',
+            label: `Extracting page ${i}/${pdf.numPages}`
+          })
+
+          if (pageTaskId) {
+            statusManager.startTask(pageTaskId)
+
+            try {
+              const page = await pdf.getPage(i)
+              const textContent = await page.getTextContent()
+              // @ts-ignore - The PDF.js typings are sometimes inconsistent
+              pageWiseText.current[i] = textContent.items
+                .map((item: any) => item.str || '')
+                .join('')
+
+              statusManager.completeTask(pageTaskId)
+            } catch (error) {
+              pageWiseText.current[i] = '\n\n Error extracting page text for page number ' + i
+              console.log('Error extracting page text for page number', i)
+              statusManager.errorTask(pageTaskId, `Error extracting page ${i}`)
+            }
+          }
         }
+
+        const end = performance.now()
+        console.log('Time taken to extract full text', (end - start) / 1000 + ' seconds')
+
+        fullText.current = Object.values(pageWiseText.current).join('\n')
+
+        statusManager.completeTask(taskId)
+        onTextExtracted(fullText.current, pageWiseText.current)
+      } else {
+        console.log(`Full text for file: ${file.path} already extracted`)
       }
-
-      const end = performance.now()
-      console.log('Time taken to extract full text', (end - start) / 1000 + ' seconds')
-
-      fullText.current = Object.values(pageWiseText.current).join('\n')
-
-      onTextExtracted(fullText.current, pageWiseText.current)
-    } else {
-      console.log(`Full text for file: ${file.path} already extracted`)
-    }
-  }, [])
+    },
+    [file, statusManager]
+  )
 
   const ctrRef = useRef<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -136,7 +174,7 @@ export function PDFDocument({
   }, [])
 
   // detect ctrl enter keypress
-  const handleChatStart = useCallback(() => {
+  const handleAddHighlightToChatBox = useCallback(() => {
     const selection = document.getSelection()
     if (!selection || selection.toString() === '' || !iframeRef.current) {
       return
@@ -154,11 +192,8 @@ export function PDFDocument({
     }
 
     try {
-      chatManager.setActiveFile(file)
       chatManager.setActiveHighlight(highlight)
     } catch (error) {
-      console.error('Error sending message:' + error)
-      message.error('Error sending message:' + error)
     } finally {
       // hide tooltip
       iframeRef.current.style.opacity = '0'
@@ -215,9 +250,11 @@ export function PDFDocument({
 
   const highlightHovered = useRef<HighlightType | null>(null)
 
-  useKeyDown({ key: 't', meta: true, callback: toggleToc }, [toggleToc])
-  useKeyDown({ key: 'h', meta: true, callback: createNewHighlight }, [createNewHighlight])
-  useKeyDown({ key: 'Enter', meta: true, callback: handleChatStart }, [handleChatStart])
+  useKeyDown({ key: 'T', meta: true, callback: toggleToc }, [toggleToc])
+  useKeyDown({ key: 'H', meta: true, callback: createNewHighlight }, [createNewHighlight])
+  useKeyDown({ key: 'Enter', meta: true, callback: handleAddHighlightToChatBox }, [
+    handleAddHighlightToChatBox
+  ])
 
   useKeyDown(
     {
@@ -241,7 +278,6 @@ export function PDFDocument({
     meta: true,
     callback: () => {
       if (highlightHovered.current) {
-        chatManager.setActiveFile(file)
         chatManager.setActiveHighlight(highlightHovered.current)
       }
     }
@@ -274,8 +310,8 @@ export function PDFDocument({
         }}
       >
         <div ref={tooltipRef} className="tooltip text-xs w-full h-full flex flex-col gap-2">
-          <KeyIcon meta={true} keyValue={'Enter'} text="Start conversation" />
-          <KeyIcon meta={true} keyValue={'h'} text="Create highlight" />
+          <KeyboardShortcutIndicator meta={true} keyValue={'Enter'} text="Start conversation" />
+          <KeyboardShortcutIndicator meta={true} keyValue={'H'} text="Create highlight" />
         </div>
       </IFrame>
 

@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import {
   ChatAPI,
-  ChatMessageType,
+  ConversationType,
   FileAPI,
   FileDetails,
   HighlightType,
@@ -12,15 +12,19 @@ import {
 // Custom APIs for renderer
 const chat: ChatAPI = {
   // Add chat-related methods
-  sendChatMessage: (details: MessageDetails): Promise<ChatMessageType> => {
+  sendChatMessage: (details: MessageDetails): Promise<ConversationType> => {
     return ipcRenderer.invoke('chat:send-message', details)
   },
 
-  onChunkReceived: (messageId: string, callback: (chunk: string) => void) => {
-    const eventTargetRef = ipcRenderer.on(messageId, (_event, value) => callback(value))
+  onChunkReceived: (conversationId: string, callback: (chunk: string) => void) => {
+    console.log('now subbing', conversationId)
+    const eventTargetRef = ipcRenderer.on(conversationId, (_event, value) => callback(value))
 
     return () => {
-      eventTargetRef.removeAllListeners(messageId)
+      console.log('now unsubbing', conversationId)
+      console.log('before unsubbing', eventTargetRef.listeners(conversationId))
+      eventTargetRef.removeAllListeners(conversationId)
+      console.log('after unsubbing', eventTargetRef.listeners(conversationId))
     }
   }
 }

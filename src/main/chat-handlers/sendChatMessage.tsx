@@ -1,11 +1,11 @@
 import { IpcMainInvokeEvent } from 'electron'
-import { ChatMessageType, MessageDetails } from '@types'
+import { ConversationType, MessageDetails } from '@types'
 import { startOaiChat } from './openai'
 
 export default async function sendChatMessage(
   _event: IpcMainInvokeEvent,
-  { userInput, highlightedText, highlightId, file, fileText }: MessageDetails
-): Promise<ChatMessageType | { error: string }> {
+  { conversation, userInput, highlightedText, highlightId, file, fileText }: MessageDetails
+): Promise<ConversationType | { error: string }> {
   // give this message an id
-  return startOaiChat({ userInput, highlightedText, highlightId, file, fileText })
+  return startOaiChat({ conversation, userInput, highlightedText, highlightId, file, fileText })
 }

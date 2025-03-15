@@ -1,4 +1,4 @@
-import { HighlightType, RaiderFile } from '@types'
+import { ConversationType, HighlightType, RaiderFile } from '@types'
 
 type Updater = (oldFile: RaiderFile) => RaiderFile
 
@@ -8,6 +8,7 @@ export interface PDFManager {
   updateFile: (newFileOrUpdater: RaiderFile | Updater) => void
   getFile: () => RaiderFile
   addOrUpdateHighlight: (highlight: HighlightType) => Promise<void>
+  addOrUpdateConversationInHistory: (conversation: ConversationType) => Promise<void>
   removeHighlight: (highlight: HighlightType) => Promise<void>
 }
 
@@ -84,6 +85,25 @@ export function PDFManager(f: RaiderFile): PDFManager {
     }
   }
 
+  async function addOrUpdateConversationInHistory(conversation: ConversationType) {
+    const idx = file.conversation_history.findIndex((c) => c.id === conversation.id)
+
+    const newConversations = [...file.conversation_history]
+
+    if (idx === -1) {
+      // if this conversation doesn't exist in the file, add to the end
+      newConversations.push(conversation)
+    } else {
+      // if this conversation does exist in the file, update it
+      newConversations[idx] = conversation
+    }
+
+    updateFile({
+      ...file,
+      conversation_history: newConversations
+    })
+  }
+
   return {
     get filePath() {
       return file.path
@@ -92,6 +112,7 @@ export function PDFManager(f: RaiderFile): PDFManager {
     getFile,
     subscribe,
     updateFile,
+    addOrUpdateConversationInHistory,
     removeHighlight
   }
 }

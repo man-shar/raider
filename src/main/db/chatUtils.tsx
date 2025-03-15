@@ -1,65 +1,47 @@
-import { ChatMessageType } from '@types'
+import { ConversationType } from '@types'
 import { getDb } from '../utils'
 
-export function updateChatHistoryInDb({
+export function addOrUpdateConversationInDb({
   path,
   is_url,
   name,
-  chat_history
+  conversation
 }: {
   path: string
   is_url: number
   name: string
-  chat_history: ChatMessageType[]
+  conversation: ConversationType
 }): { error?: string } {
   const db = getDb()
   try {
-    const updateStmt = db.prepare<[string, string, number, string]>(
-      `UPDATE files SET chat_history = ? WHERE path = ? AND is_url = ? AND name = ?`
-    )
-    updateStmt.run(JSON.stringify(chat_history), path, is_url, name)
-    return {}
-  } catch (error: any) {
-    console.error('Error updating chat history:', error)
-    return { error: error.message }
-  } finally {
-    db.close()
-  }
-}
+    const conversationHistoryStmt = db.prepare<
+      [string, number, string],
+      { conversation_history: string }
+    >(`SELECT conversation_history FROM files WHERE path = ? AND is_url = ? AND name = ?`)
 
-export function updateChatInDb({
-  path,
-  is_url,
-  name,
-  chat
-}: {
-  path: string
-  is_url: number
-  name: string
-  chat: ChatMessageType
-}): { error?: string } {
-  const db = getDb()
-  try {
-    const chatHistoryStmt = db.prepare<[string, number, string], ChatMessageType[]>(
-      `SELECT chat_history FROM files WHERE path = ? AND is_url = ? AND name = ?`
-    )
+    const result = conversationHistoryStmt.get(path, is_url, name)
 
-    const chatHistory = chatHistoryStmt.get(path, is_url, name)
-
-    if (!chatHistory) {
+    if (!result) {
       throw new Error('Chat history not found')
     }
+
+    // Parse the JSON string into an array
+    const conversationHistory: ConversationType[] = JSON.parse(result.conversation_history)
+
     // find the index of the chat to update
-    const chatIndex = chatHistory.findIndex((c) => c.id === chat.id)
-    if (chatIndex === -1) {
-      throw new Error('Chat not found')
+    const convIdx = conversationHistory.findIndex((c) => c.id === conversation.id)
+    if (convIdx === -1) {
+      console.log(`Conversation id: ${conversation.id} not found.. creating new one.`)
+      conversationHistory.push(conversation)
+    } else {
+      console.log(`Conversation id: ${conversation.id} found. Updating.`)
+      conversationHistory[convIdx] = conversation
     }
 
-    chatHistory[chatIndex] = chat
     const updateStmt = db.prepare<[string, string, number, string]>(
-      `UPDATE files SET chat_history = ? WHERE path = ? AND is_url = ? AND name = ?`
+      `UPDATE files SET conversation_history = ? WHERE path = ? AND is_url = ? AND name = ?`
     )
-    updateStmt.run(JSON.stringify(chatHistory), path, is_url, name)
+    updateStmt.run(JSON.stringify(conversationHistory), path, is_url, name)
 
     return {}
   } catch (error: any) {
@@ -70,36 +52,26 @@ export function updateChatInDb({
   }
 }
 
-export function addChatToHistoryInDb({
+export function deleteConversationInDb({
   path,
   is_url,
   name,
-  chat
+  conversationId
 }: {
   path: string
   is_url: number
   name: string
-  chat: ChatMessageType
+  conversationId: string
 }): { error?: string } {
   const db = getDb()
   try {
-    const chatHistoryStmt = db.prepare<[string, number, string], ChatMessageType[]>(
-      `SELECT chat_history FROM files WHERE path = ? AND is_url = ? AND name = ?`
+    const deleteStmt = db.prepare<[string, number, string, string]>(
+      `DELETE FROM files WHERE path = ? AND is_url = ? AND name = ? AND conversation_id = ?`
     )
-
-    const chatHistory = chatHistoryStmt.get(path, is_url, name)
-
-    if (!chatHistory) {
-      throw new Error('Chat history not found')
-    }
-    const newChatHistory = [...chatHistory, chat]
-    const updateStmt = db.prepare(
-      `UPDATE files SET chat_history = ? WHERE path = ? AND is_url = ? AND name = ?`
-    )
-    updateStmt.run(JSON.stringify(newChatHistory), path, is_url, name)
+    deleteStmt.run(path, is_url, name, conversationId)
     return {}
   } catch (error: any) {
-    console.error('Error adding chat to history:', error)
+    console.error('Error deleting chat:', error)
     return { error: error.message }
   } finally {
     db.close()

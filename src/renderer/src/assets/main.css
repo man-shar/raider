@@ -29,3 +29,112 @@
 kbd {
   @apply rounded-md p-1 bg-white font-mono text-xs font-bold border border-b-2 border-gray-300 mr-1 flex items-center justify-center gap-1;
 }
+
+.bg-grid {
+  @apply bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px];
+}
+
+.bg-grid-rotated {
+  @apply bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] rotate-45;
+}
+
+.bg-dotted-gray {
+  @apply bg-[radial-gradient(theme(colors.gray.300)_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(theme(colors.gray.500)_1px,theme(colors.gray.800)_1px)];
+}
+
+.bg-dotted-blue {
+  @apply bg-[radial-gradient(theme(colors.blue.300)_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(theme(colors.blue.400)_1px,theme(colors.gray.800)_1px)];
+}
+
+.bg-dotted-red {
+  @apply bg-[radial-gradient(theme(colors.red.200)_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(theme(colors.red.900)_1px,transparent_1px)];
+}
+
+.bg-dotted-green {
+  @apply bg-[radial-gradient(theme(colors.green.200)_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(theme(colors.green.900)_1px,transparent_1px)];
+}
+
+.bg-dotted-yellow {
+  @apply bg-[radial-gradient(theme(colors.yellow.200)_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(theme(colors.yellow.900)_1px,transparent_1px)];
+}
+
+/* Markdown and LaTeX Styles */
+.markdown-renderer {
+  @apply text-wrap break-all text-sm;
+}
+
+.markdown-renderer .ProseMirror {
+  @apply outline-none;
+}
+
+.markdown-renderer .ProseMirror h1 {
+  @apply text-2xl font-bold mb-4 mt-6;
+}
+
+.markdown-renderer .ProseMirror h2 {
+  @apply text-xl font-bold mb-3 mt-5;
+}
+
+.markdown-renderer .ProseMirror h3 {
+  @apply text-lg font-bold mb-2 mt-4;
+}
+
+.markdown-renderer .ProseMirror p {
+  @apply mb-4;
+}
+
+.markdown-renderer .ProseMirror a {
+  @apply text-blue-600 underline;
+}
+
+.markdown-renderer .ProseMirror ul {
+  @apply list-disc pl-6 mb-4;
+}
+
+.markdown-renderer .ProseMirror ol {
+  @apply list-decimal pl-6 mb-4;
+}
+
+.markdown-renderer .ProseMirror blockquote {
+  @apply pl-4 border-l-4 border-gray-300 italic my-4;
+}
+
+.markdown-renderer .ProseMirror pre {
+  @apply bg-gray-100 p-3 rounded-md font-mono text-sm mb-4 overflow-x-auto;
+}
+
+.markdown-renderer .ProseMirror code {
+  @apply font-mono bg-gray-100 px-1 rounded text-sm;
+}
+
+.markdown-renderer .ProseMirror pre code {
+  @apply bg-transparent p-0;
+}
+
+.markdown-renderer .math-node {
+  @apply my-4 py-2 px-1 overflow-x-auto;
+}
+
+.markdown-renderer .math-node-inline {
+  @apply my-0 py-0 px-1 inline-block align-middle;
+}
+
+/* Hide KaTeX HTML fallback */
+.katex-html {
+  @apply hidden;
+}
+
+/* Ensure proper spacing around LaTeX elements */
+.markdown-renderer .ProseMirror .katex {
+  @apply mx-1 text-lg;
+}
+
+/* Properly size and center block math */
+.markdown-renderer .ProseMirror .math-node .katex-display {
+  @apply overflow-x-auto my-2;
+}
+
+/* Hide editor placeholder when empty */
+.markdown-renderer .ProseMirror p.is-editor-empty:first-child::before {
+  @apply hidden;
+}

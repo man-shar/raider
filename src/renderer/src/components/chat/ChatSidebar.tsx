@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore
@@ -14,9 +15,13 @@ import {
   TextArea
 } from '@defogdotai/agents-ui-components/core-ui'
 import { AppContext } from '@renderer/context/AppContext'
-import { ChatMessage } from './ChatMessage'
+import { Conversation } from './Conversation'
 import { X } from 'lucide-react'
 import { PDFManager } from '../pdf-viewer/PDFManager'
+import { ConversationHistory } from './History'
+import { ConversationType } from '@types'
+import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
+import { useKeyDown } from '@renderer/hooks/useKeyDown'
 
 interface PastedImage {
   id: string
@@ -28,12 +33,12 @@ interface PastedImageMap {
   [id: string]: PastedImage
 }
 
-export function ChatBar({
+export function ChatSidebar({
   fileText,
   fileManager
 }: {
   fileText: string | null
-  fileManager: PDFManager | null
+  fileManager: PDFManager
 }) {
   const { chatManager } = useContext(AppContext)
   const message = useContext(MessageManagerContext)
@@ -44,60 +49,11 @@ export function ChatBar({
     chatManager.getActiveHighlight
   )
 
-  const activeFile = useSyncExternalStore(
-    chatManager.subscribeToActiveFile,
-    chatManager.getActiveFile
-  )
-
-  const messages = useSyncExternalStore(
-    chatManager.subscribeToChatMessages,
-    chatManager.getMessages
-  )
+  const file = useSyncExternalStore(fileManager?.subscribe, fileManager?.getFile)
 
   const loading = useSyncExternalStore(chatManager.subscribeToLoading, chatManager.getLoading)
 
   const [images, setImages] = useState<PastedImageMap>({})
-
-  const handleKeyPress = useCallback(
-    async (e: KeyboardEvent<HTMLInputElement>): Promise<void> => {
-      if (!textAreaRef.current) return
-
-      const val = e.currentTarget.value
-      if (e.key === 'Enter' && val.trim()) {
-        try {
-          if (fileText === null) {
-            console.warn('File text not extracted yet. Still sending message.')
-          }
-
-          // For now, just log the message
-          chatManager
-            .sendChatMessage({
-              userInput: val,
-              file: activeFile,
-              highlightedText: activeHighlight?.fullText || null,
-              highlightId: activeHighlight?.id || null,
-              fileText: fileText
-            })
-            .catch((error) => {
-              throw new Error(error)
-            })
-
-          if (fileManager && activeHighlight) {
-            await fileManager.addOrUpdateHighlight({ ...activeHighlight, has_conversation: true })
-          }
-
-          textAreaRef.current.value = ''
-        } catch (error) {
-          console.error('Error sending message:' + error)
-          message.error('Error sending message:' + error)
-        } finally {
-          chatManager.setLoading(false)
-          chatManager.setActiveHighlight(null)
-        }
-      }
-    },
-    [fileManager, fileText, activeHighlight]
-  )
 
   useEffect(() => {
     if (activeHighlight) {
@@ -128,14 +84,94 @@ export function ChatBar({
     })
   }, [])
 
+  const conversations = useMemo(() => file.conversation_history, [file])
+
+  const [activeConversation, setActiveConversation] = useState<ConversationType | null>(null)
+
+  const handleKeyPress = useCallback(
+    async (e: KeyboardEvent<HTMLTextAreaElement>): Promise<void> => {
+      if (!textAreaRef.current) return
+
+      const val = e.currentTarget.value
+      if (e.key === 'Enter' && val.trim()) {
+        try {
+          if (!fileManager) throw new Error('File manager not found')
+
+          if (fileText === null) {
+            message.warning('File text not extracted yet. Still sending message.')
+          }
+
+          // For now, just log the message
+          const newConversation = await chatManager
+            .sendChatMessage({
+              conversation: activeConversation,
+              userInput: val,
+              file: fileManager.getFile(),
+              highlightedText: activeHighlight?.fullText || null,
+              highlightId: activeHighlight?.id || null,
+              fileText: fileText
+            })
+            .catch((error) => {
+              throw new Error(error)
+            })
+
+          if (fileManager) {
+            fileManager.addOrUpdateConversationInHistory(newConversation)
+            if (activeHighlight) {
+              await fileManager.addOrUpdateHighlight({ ...activeHighlight, has_conversation: true })
+            }
+          }
+
+          console.log('New received', newConversation)
+
+          setActiveConversation(newConversation)
+
+          textAreaRef.current.value = ''
+        } catch (error) {
+          console.error(error.message)
+          message.error(error.message)
+        } finally {
+          chatManager.setLoading(false)
+          chatManager.setActiveHighlight(null)
+        }
+      }
+    },
+    [fileManager, fileText, activeHighlight, message, chatManager, activeConversation]
+  )
+
+  useKeyDown({
+    key: 'l',
+    meta: true,
+    callback: () => {
+      if (textAreaRef.current) {
+        textAreaRef.current.focus()
+      }
+    }
+  })
+
+  useKeyDown({
+    key: 'n',
+    meta: true,
+    callback: () => {
+      setActiveConversation(null)
+    }
+  })
+
   return (
     <div className="flex flex-col w-full h-full p-2 sticky top-0 z-20">
-      <div className="chat-ctr h-full overflow-auto">
-        {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} />
-        ))}
+      <div className="chat-ctr h-full overflow-auto pt-16">
+        {activeConversation && (
+          <Conversation key={activeConversation.id} messages={activeConversation.messages} />
+        )}
       </div>
-      <div className="rounded-2xl divide-y space-y-3 bg-gray-50 border border-gray-300 p-2 shadow-md">
+      <div className="absolute bg-grid top-0 left-0 right-0 mx-auto p-4 bg-white border-b border-b-gray-200 *:transition-all *:duration-700">
+        <ConversationHistory
+          conversationHistory={conversations}
+          onClick={setActiveConversation}
+          activeConversation={activeConversation}
+        />
+      </div>
+      <div className="rounded-2xl divide-y space-y-3 bg-gray-50 border border-gray-300 border-b-2 shadow-lg p-2">
         {activeHighlight && (
           <div className="text-gray-400 border-b pb-2 border-gray-200 text-xs relative max-h-60 overflow-auto">
             <div className="text-gray-500 mb-2">Highlighted text</div>
@@ -215,7 +251,14 @@ export function ChatBar({
           disabled={loading}
           rootClassNames="sticky bottom-0"
           textAreaClassNames="max-h-60 overflow-auto shadow-none"
-          label={'Ask a question here'}
+          label={
+            <div className="space-x-1">
+              <span>Continue chatting</span>
+              <KeyboardShortcutIndicator keyValue="L" meta className="bg-white h-5" />
+              <span>or start a new conversation</span>
+              <KeyboardShortcutIndicator keyValue="N" meta className="bg-white h-5" />
+            </div>
+          }
           placeholder="Paste images or text"
           onKeyDown={handleKeyPress}
           autoResize={true}

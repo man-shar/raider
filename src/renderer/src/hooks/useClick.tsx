@@ -14,7 +14,7 @@ export const useClick = (
     shift?: boolean
     alt?: boolean
     target?: HTMLElement | Document | null
-    callback: () => void
+    callback: (e: MouseEvent) => void
   },
   deps: any[] = []
 ) => {
@@ -34,7 +34,7 @@ export const useClick = (
       ) {
         mouseEvent.stopPropagation()
         mouseEvent.preventDefault()
-        callback()
+        callback(mouseEvent)
       }
     }
 

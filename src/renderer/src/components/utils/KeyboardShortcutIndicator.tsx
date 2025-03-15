@@ -1,7 +1,7 @@
 import { CommandIcon, MousePointerClick } from 'lucide-react'
 import React from 'react'
 
-interface KeyIconProps {
+interface KeyboardShortcutIndicatorProps {
   className?: string
   keyValue?: string | null
   clickIcon?: boolean
@@ -9,7 +9,7 @@ interface KeyIconProps {
   text?: string | null
 }
 
-export const KeyIcon: React.FC<KeyIconProps> = ({
+export const KeyboardShortcutIndicator: React.FC<KeyboardShortcutIndicatorProps> = ({
   className = '',
   keyValue = null,
   clickIcon = false,
@@ -17,7 +17,7 @@ export const KeyIcon: React.FC<KeyIconProps> = ({
   text = null
 }) => {
   return (
-    <div className="text-xs flex items-center font-mono gap-1">
+    <div className="text-xs inline-flex items-center font-mono gap-1">
       <kbd className={className}>
         {meta && <CommandIcon width={10} height={10} />}
         {keyValue}
@@ -28,4 +28,4 @@ export const KeyIcon: React.FC<KeyIconProps> = ({
   )
 }
 
-export default KeyIcon
+export default KeyboardShortcutIndicator

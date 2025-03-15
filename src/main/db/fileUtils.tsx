@@ -10,7 +10,7 @@ function parseFileRowToRaiderFile(row: RaiderFileDbRow): RaiderFile {
   return {
     ...row,
     highlights: JSON.parse(row.highlights),
-    chat_history: JSON.parse(row.chat_history),
+    conversation_history: JSON.parse(row.conversation_history),
     details: JSON.parse(row.details)
   }
 }

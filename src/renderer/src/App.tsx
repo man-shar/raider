@@ -5,7 +5,7 @@ import { pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 import { twMerge } from 'tailwind-merge'
-import { ChatBar } from './components/chat/ChatBar'
+import { ChatSidebar } from './components/chat/ChatSidebar'
 import { Nav } from './components/utils/Nav'
 import {
   Button,
@@ -18,6 +18,7 @@ import { AppContext } from './context/AppContext'
 import { ChatManager } from './components/chat/ChatManager'
 import { Footer } from './components/footer/Footer'
 import { PDFManager } from './components/pdf-viewer/PDFManager'
+import { createStatusManager } from './components/utils/StatusManager'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -38,6 +39,7 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
   }, [selectedFilePath, fileManagers])
 
   const { current: chatManager } = useRef(ChatManager())
+  const { current: statusManager } = useRef(createStatusManager())
 
   useEffect(() => {
     if (!selectedFilePath && fileManagers.length) {
@@ -69,15 +71,15 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
   })
 
   return (
-    <AppContext.Provider value={{ chatManager }}>
+    <AppContext.Provider value={{ chatManager, statusManager }}>
       <MessageManagerContext.Provider value={message.current}>
         <MessageMonitor />
         <div className="prose min-w-screen h-screen relative flex flex-col max-h-full">
           <div className="flex flex-row divide-x divide-gray-200 w-full min-h-0 grow">
             {fileManagers.length ? (
               <div className="sidebar min-w-96 max-w-96 h-full bg-white">
-                {selectedFilePath && (
-                  <ChatBar
+                {selectedFilePath && selectedFileManager && (
+                  <ChatSidebar
                     fileManager={selectedFileManager}
                     fileText={fileTexts?.[selectedFilePath]?.fullText || null}
                   />

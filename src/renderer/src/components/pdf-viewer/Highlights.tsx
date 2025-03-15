@@ -1,7 +1,7 @@
 import { HighlightType } from '@types'
 import 'tippy.js/dist/tippy.css'
 import Tippy from '@tippyjs/react/headless' // different import path!
-import KeyIcon from '../utils/KeyIcon'
+import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
 
 interface HighlightsProps {
   highlights: HighlightType[]
@@ -30,8 +30,12 @@ export function Highlights({ highlights = [], width, onHover }: HighlightsProps)
           render={(attrs) => (
             <div className="bg-white text-xs rounded-md border p-2" {...attrs}>
               <div className="flex flex-col gap-2">
-                <KeyIcon meta={true} clickIcon={true} text={'Start conversation'} />
-                <KeyIcon meta={true} keyValue={'r'} text={'Remove highlight'} />
+                <KeyboardShortcutIndicator
+                  meta={true}
+                  clickIcon={true}
+                  text={'Start conversation'}
+                />
+                <KeyboardShortcutIndicator meta={true} keyValue={'R'} text={'Remove highlight'} />
               </div>
             </div>
           )}

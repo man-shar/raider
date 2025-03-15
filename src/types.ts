@@ -1,23 +1,34 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 
-export interface ChatMessageType {
+export interface MessageWithHighlights {
   id: string
-  userInput: string
-  highlightedText: string | null
-  highlightId: string | null
+  role: string
+  content: string
+  isLoading?: boolean
+  displayContent?: string
+  highlightedText?: string | null
+  highlightId?: string | null
+  terminateString?: string
+}
+
+export interface ConversationType {
+  id: string
   timestamp: string
-  response: string
-  messages: { role: string; content: string }[]
+  /**
+   * Slightly extended message item.
+   * The "displayContent" is more for readability purposes on the front end. The prompt is "The user's question is: {userInput}"
+   * We will instead only show the {userInput} bit in displayContent
+   */
+  messages: MessageWithHighlights[]
+  tokens?: { prompt: number; cachedInput: number; completion: number }
+  totalCost?: number
   metadata: {
     model_name: string
   }
 }
 
-export interface Chat {
-  messages: ChatMessageType[]
-}
-
 export interface MessageDetails {
+  conversation: ConversationType | null
   userInput: string
   highlightedText: string | null
   highlightId: string | null
@@ -26,7 +37,7 @@ export interface MessageDetails {
 }
 
 export interface ChatAPI {
-  sendChatMessage: (details: MessageDetails) => Promise<ChatMessageType | { error: string }>
+  sendChatMessage: (details: MessageDetails) => Promise<ConversationType | { error: string }>
   /**
    * Adds a listener for the given `messageId` and calls the `callback`
    * function whenever a chunk of data is received. The callback function
@@ -67,7 +78,7 @@ export interface RaiderFile {
   is_url: number
   name: string
   highlights: HighlightType[]
-  chat_history: []
+  conversation_history: ConversationType[]
   buf?: { data: Array<number> }
   type?: string
   details: FileDetails
@@ -78,7 +89,7 @@ export interface RaiderFileDbRow {
   is_url: number
   name: string
   highlights: string
-  chat_history: string
+  conversation_history: string
   details: string
 }
 
