@@ -28,12 +28,15 @@ const chat: ChatAPI = {
     }
   },
   
-  // API key and model management
-  setApiKey: (key: string) => ipcRenderer.invoke('chat:set-api-key', key),
-  getApiKey: () => ipcRenderer.invoke('chat:get-api-key'),
-  setModel: (model: string) => ipcRenderer.invoke('chat:set-model', model),
-  getModel: () => ipcRenderer.invoke('chat:get-model'),
-  getAvailableModels: () => ipcRenderer.invoke('chat:get-available-models')
+  // Provider and model management
+  getProviders: () => ipcRenderer.invoke('chat:get-providers'),
+  updateProviderSettings: (providerId, settings) => 
+    ipcRenderer.invoke('chat:update-provider-settings', providerId, settings),
+  getActiveProvider: () => ipcRenderer.invoke('chat:get-active-provider'),
+  setActiveProvider: (providerId) => 
+    ipcRenderer.invoke('chat:set-active-provider', providerId),
+  getAvailableModels: (providerId) => 
+    ipcRenderer.invoke('chat:get-available-models', providerId)
 }
 
 const fileHandler: FileAPI = {

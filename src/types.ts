@@ -24,6 +24,7 @@ export interface ConversationType {
   totalCost?: number
   metadata: {
     model_name: string
+    provider: string
   }
 }
 
@@ -34,11 +35,28 @@ export interface MessageDetails {
   highlightId: string | null
   file: RaiderFile | null
   fileText: string | null
+  providerId?: ProviderType
 }
 
-export interface OpenAIModel {
+export interface AIModel {
   id: string
   name: string
+  provider: string
+}
+
+export type ProviderType = 'openai' | 'anthropic' | 'google' | 'deepseek'
+
+export interface ProviderSettings {
+  apiKey: string
+  selectedModel: string
+  isEnabled: boolean
+}
+
+export interface ProviderConfig {
+  id: ProviderType
+  name: string
+  settings: ProviderSettings
+  models: AIModel[]
 }
 
 export interface ChatAPI {
@@ -52,12 +70,12 @@ export interface ChatAPI {
    */
   onChunkReceived: (messageId: string, callback: (chunk: string) => void) => () => void
   
-  // API key and model management
-  setApiKey: (key: string) => Promise<{ success: boolean }>
-  getApiKey: () => Promise<string>
-  setModel: (model: string) => Promise<{ success: boolean }>
-  getModel: () => Promise<string>
-  getAvailableModels: () => Promise<{ models: OpenAIModel[], error: string | null }>
+  // Provider and model management
+  getProviders: () => Promise<ProviderConfig[]>
+  updateProviderSettings: (providerId: ProviderType, settings: Partial<ProviderSettings>) => Promise<{ success: boolean }>
+  getActiveProvider: () => Promise<ProviderType>
+  setActiveProvider: (providerId: ProviderType) => Promise<{ success: boolean }>
+  getAvailableModels: (providerId: ProviderType) => Promise<{ models: AIModel[], error: string | null }>
 }
 
 // ---- File related types

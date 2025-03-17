@@ -290,7 +290,8 @@ export function startOaiChat({
           messages: messagesForOpenAi,
           timestamp: new Date().toISOString(),
           metadata: {
-            model_name: model
+            model_name: model,
+            provider: 'openai'
           }
         }
 

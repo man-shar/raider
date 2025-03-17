@@ -1,6 +1,12 @@
 import { ipcMain } from 'electron'
 import sendChatMessage from '../chat-handlers/sendChatMessage'
-import { getApiKey, setApiKey, getModel, setModel, getAvailableModels } from '../chat-handlers/openai'
+import { 
+  getProviders, 
+  getActiveProvider, 
+  setActiveProvider, 
+  updateProviderSettings, 
+  getAvailableModels 
+} from '../chat-handlers/providerHandlers'
 import { selectFile } from '../file-handlers/selectFile'
 import { openURL } from '../file-handlers/openURL'
 import { updateFileHighlights } from '../file-handlers/updateHighlights'
@@ -12,12 +18,12 @@ export function setupHandlers() {
   // chat handlers
   ipcMain.handle('chat:send-message', sendChatMessage)
   
-  // API key and model management
-  ipcMain.handle('chat:set-api-key', (_event, key) => setApiKey(key))
-  ipcMain.handle('chat:get-api-key', () => getApiKey())
-  ipcMain.handle('chat:set-model', (_event, model) => setModel(model))
-  ipcMain.handle('chat:get-model', () => getModel())
-  ipcMain.handle('chat:get-available-models', () => getAvailableModels())
+  // Provider and model management
+  ipcMain.handle('chat:get-providers', getProviders)
+  ipcMain.handle('chat:get-active-provider', getActiveProvider)
+  ipcMain.handle('chat:set-active-provider', setActiveProvider)
+  ipcMain.handle('chat:update-provider-settings', updateProviderSettings)
+  ipcMain.handle('chat:get-available-models', getAvailableModels)
 
   // file handlers
   ipcMain.handle('file:select', selectFile)

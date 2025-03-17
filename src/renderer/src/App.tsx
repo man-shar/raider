@@ -114,15 +114,16 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
               <div className="files relative">
                 {fileManagers.map((mgr, index) => {
                   const file = mgr.getFile()
-
+                  
+                  // Keep all components but hide non-active ones
                   return (
                     <div
                       key={index}
                       className={twMerge(
-                        'relative z-2',
-                        selectedFilePath !== file.path &&
-                          'absolute opacity-0 pointer-events-none top-0 left-0 -z-10'
+                        'relative', 
+                        selectedFilePath === file.path ? 'z-10 visible' : 'z-0 invisible absolute top-0 left-0 h-0 w-0 overflow-hidden'
                       )}
+                      aria-hidden={selectedFilePath !== file.path}
                     >
                       <PDFDocument
                         pdfManager={mgr}

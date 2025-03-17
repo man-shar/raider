@@ -1,118 +1,141 @@
 import { ChatManager } from '../components/chat/ChatManager'
 import { StatusManager, createStatusManager } from '../components/utils/StatusManager'
 import { createContext, useEffect, useState } from 'react'
-import { OpenAIModel } from '@types'
+import { ProviderConfig, ProviderSettings, ProviderType } from '@types'
 
 export interface AppContextType {
   chatManager: ChatManager
   statusManager: StatusManager
-  apiSettings: {
-    apiKey: string
-    selectedModel: string
-    models: OpenAIModel[]
+  providerSettings: {
+    providers: ProviderConfig[]
+    activeProvider: ProviderType
     isLoading: boolean
     error: string | null
-    setApiKey: (key: string) => Promise<void>
-    setModel: (model: string) => Promise<void>
-    refreshModels: () => Promise<void>
+    updateProvider: (providerId: ProviderType, settings: Partial<ProviderSettings>) => Promise<void>
+    setActiveProvider: (providerId: ProviderType) => Promise<void>
+    refreshModels: (providerId: ProviderType) => Promise<void>
+    refreshProviders: () => Promise<void>
   }
 }
 
-// Create a provider component to handle API settings state
+// Create a provider component to handle provider settings
 export function AppContextProvider({ children }: { children: React.ReactNode }) {
-  const [apiKey, setApiKeyState] = useState('')
-  const [selectedModel, setSelectedModelState] = useState('')
-  const [models, setModels] = useState<OpenAIModel[]>([])
+  const [providers, setProviders] = useState<ProviderConfig[]>([])
+  const [activeProvider, setActiveProviderState] = useState<ProviderType>('openai')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // Initialize with values from main process
+  // Initialize providers on component mount
   useEffect(() => {
-    const initSettings = async () => {
-      try {
-        const storedApiKey = await window.chat.getApiKey()
-        if (storedApiKey) {
-          setApiKeyState(storedApiKey)
-          
-          const storedModel = await window.chat.getModel()
-          setSelectedModelState(storedModel)
-          
-          // Fetch available models if we have an API key
-          await refreshModels()
-        }
-      } catch (err) {
-        console.error('Failed to initialize API settings:', err)
-      }
-    }
-    
-    initSettings()
+    refreshProviders()
   }, [])
   
-  const setApiKey = async (key: string) => {
-    try {
-      setIsLoading(true)
-      await window.chat.setApiKey(key)
-      setApiKeyState(key)
-      
-      // Refresh models when API key changes
-      if (key) {
-        await refreshModels()
-      } else {
-        setModels([])
-      }
-    } catch (err) {
-      setError('Failed to set API key: ' + (err.message || String(err)))
-    } finally {
-      setIsLoading(false)
-    }
-  }
-  
-  const setModel = async (model: string) => {
-    try {
-      setIsLoading(true)
-      await window.chat.setModel(model)
-      setSelectedModelState(model)
-    } catch (err) {
-      setError('Failed to set model: ' + (err.message || String(err)))
-    } finally {
-      setIsLoading(false)
-    }
-  }
-  
-  const refreshModels = async () => {
+  // Refresh the list of providers and their settings
+  const refreshProviders = async () => {
     try {
       setIsLoading(true)
       setError(null)
       
-      const response = await window.chat.getAvailableModels()
-      if (response.error) {
-        setError(response.error)
-      } else {
-        setModels(response.models || [])
+      // Get all providers
+      const allProviders = await window.chat.getProviders()
+      setProviders(allProviders)
+      
+      // Get active provider
+      const active = await window.chat.getActiveProvider()
+      setActiveProviderState(active)
+      
+      // For each provider with an API key, fetch models
+      for (const provider of allProviders) {
+        if (provider.settings.apiKey) {
+          await refreshModels(provider.id)
+        }
       }
     } catch (err) {
-      setError('Failed to fetch models: ' + (err.message || String(err)))
-      setModels([])
+      setError('Failed to load providers: ' + (err.message || String(err)))
     } finally {
       setIsLoading(false)
     }
   }
   
-  const apiSettings = {
-    apiKey,
-    selectedModel,
-    models,
+  // Update a provider's settings
+  const updateProvider = async (providerId: ProviderType, settings: Partial<ProviderSettings>) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      await window.chat.updateProviderSettings(providerId, settings)
+      
+      // If the API key changed, refresh models
+      if (settings.apiKey !== undefined) {
+        await refreshModels(providerId)
+      }
+      
+      // Update the providers list
+      await refreshProviders()
+    } catch (err) {
+      setError('Failed to update provider settings: ' + (err.message || String(err)))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  // Set the active provider
+  const setActiveProvider = async (providerId: ProviderType) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      await window.chat.setActiveProvider(providerId)
+      setActiveProviderState(providerId)
+    } catch (err) {
+      setError('Failed to set active provider: ' + (err.message || String(err)))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  // Refresh the list of models for a provider
+  const refreshModels = async (providerId: ProviderType) => {
+    try {
+      const response = await window.chat.getAvailableModels(providerId)
+      
+      if (response.error) {
+        setError(response.error)
+        return
+      }
+      
+      // Update the provider's models
+      setProviders(prevProviders => 
+        prevProviders.map(provider => {
+          if (provider.id === providerId) {
+            return {
+              ...provider,
+              models: response.models
+            }
+          }
+          return provider
+        })
+      )
+    } catch (err) {
+      setError('Failed to fetch models: ' + (err.message || String(err)))
+    }
+  }
+  
+  const providerSettings = {
+    providers,
+    activeProvider,
     isLoading,
     error,
-    setApiKey,
-    setModel,
-    refreshModels
+    updateProvider,
+    setActiveProvider,
+    refreshModels,
+    refreshProviders
   }
   
   const contextValue: AppContextType = {
     chatManager: ChatManager(),
     statusManager: createStatusManager(),
-    apiSettings
+    providerSettings
   }
   
   return (
@@ -126,14 +149,14 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
 export const AppContext = createContext<AppContextType>({
   chatManager: ChatManager(),
   statusManager: createStatusManager(),
-  apiSettings: {
-    apiKey: '',
-    selectedModel: '',
-    models: [],
+  providerSettings: {
+    providers: [],
+    activeProvider: 'openai',
     isLoading: false,
     error: null,
-    setApiKey: async () => {},
-    setModel: async () => {},
-    refreshModels: async () => {}
+    updateProvider: async () => {},
+    setActiveProvider: async () => {},
+    refreshModels: async () => {},
+    refreshProviders: async () => {}
   }
 })

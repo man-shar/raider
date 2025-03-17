@@ -11,9 +11,12 @@ importers:
       '@aarkue/tiptap-math-extension':
         specifier: ^1.3.4
         version: 1.3.4(@tiptap/core@2.11.5(@tiptap/pm@2.11.5))(@tiptap/pm@2.11.5)
+      '@anthropic-ai/sdk':
+        specifier: ^0.39.0
+        version: 0.39.0(encoding@0.1.13)
       '@defogdotai/agents-ui-components':
-        specifier: ^1.5.0
-        version: 1.5.0(@babel/runtime@7.26.7)(@codemirror/autocomplete@6.18.4)(@codemirror/language@6.10.8)(@codemirror/lint@6.8.4)(@codemirror/search@6.5.8)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.2)(@tiptap/pm@2.11.5)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        specifier: ^1.8.0
+        version: 1.8.0(@babel/runtime@7.26.7)(@codemirror/autocomplete@6.18.4)(@codemirror/language@6.10.8)(@codemirror/lint@6.8.4)(@codemirror/search@6.5.8)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.2)(@tiptap/pm@2.11.5)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@electron-toolkit/preload':
         specifier: ^3.0.1
         version: 3.0.1(electron@34.1.1)
@@ -23,6 +26,9 @@ importers:
       '@floating-ui/react':
         specifier: ^0.27.4
         version: 0.27.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@google/generative-ai':
+        specifier: ^0.24.0
+        version: 0.24.0
       '@tailwindcss/vite':
         specifier: ^4.0.0
         version: 4.0.4(vite@6.1.0(@types/node@22.13.1)(jiti@2.4.2)(lightningcss@1.29.1)(sass-embedded@1.83.4))
@@ -169,6 +175,9 @@ packages:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
 
+  '@anthropic-ai/sdk@0.39.0':
+    resolution: {integrity: sha512-eMyDIPRZbt1CCLErRCi3exlAvNkBtRe+kW5vvJyef93PmNr/clstYgHhtvmkxN82nlKgzyGPCyGxrm0JQ1ZIdg==}
+
   '@babel/code-frame@7.26.2':
     resolution: {integrity: sha512-RJlIHRueQgwWitWgF8OdFYGZX328Ax5BCemNGlqHfplnRT9ESi8JkFlvaVYbS+UubVY6dpv87Fs2u5M29iNFVQ==}
     engines: {node: '>=6.9.0'}
@@ -291,8 +300,8 @@ packages:
   '@codemirror/view@6.36.2':
     resolution: {integrity: sha512-DZ6ONbs8qdJK0fdN7AB82CgI6tYXf4HWk1wSVa0+9bhVznCuuvhQtX8bFBoy3dv8rZSQqUd8GvhVAcielcidrA==}
 
-  '@defogdotai/agents-ui-components@1.5.0':
-    resolution: {integrity: sha512-VcyFA9BG2M5aalWD/1OimzA0fbRxGdXlnSHWLg7kbQVFL9bGTyt5Usnhmy1Y4FVVkdZBV/BYLE9hFy6QX0xBPg==}
+  '@defogdotai/agents-ui-components@1.8.0':
+    resolution: {integrity: sha512-uIJ1oubjirLNbTXP9AozC+Wc4Ke2qHWb2/oaGJIGQ5fO/1P3L3Rq8KhTB0bq9qlmmmYXOgWv1xAPvxPyUPZPwg==}
     peerDependencies:
       react: 19.0.0
       react-dom: 19.0.0
@@ -590,6 +599,10 @@ packages:
 
   '@gar/promisify@1.1.3':
     resolution: {integrity: sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==}
+
+  '@google/generative-ai@0.24.0':
+    resolution: {integrity: sha512-fnEITCGEB7NdX0BhoYZ/cq/7WPZ1QS5IzJJfC3Tg/OwkvBetMiVJciyaan297OvE4B9Jg1xvo0zIazX/9sGu1Q==}
+    engines: {node: '>=18.0.0'}
 
   '@headlessui/react@2.2.0':
     resolution: {integrity: sha512-RzCEg+LXsuI7mHiSomsu/gBJSjpupm6A1qIZ5sWjd7JhARNlMiSA4kKfJpCKwU9tE+zMRterhhrP74PvfJrpXQ==}
@@ -4100,6 +4113,18 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.8
       '@jridgewell/trace-mapping': 0.3.25
 
+  '@anthropic-ai/sdk@0.39.0(encoding@0.1.13)':
+    dependencies:
+      '@types/node': 18.19.75
+      '@types/node-fetch': 2.6.12
+      abort-controller: 3.0.0
+      agentkeepalive: 4.6.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.7.0(encoding@0.1.13)
+    transitivePeerDependencies:
+      - encoding
+
   '@babel/code-frame@7.26.2':
     dependencies:
       '@babel/helper-validator-identifier': 7.25.9
@@ -4291,7 +4316,7 @@ snapshots:
       style-mod: 4.1.2
       w3c-keyname: 2.2.8
 
-  '@defogdotai/agents-ui-components@1.5.0(@babel/runtime@7.26.7)(@codemirror/autocomplete@6.18.4)(@codemirror/language@6.10.8)(@codemirror/lint@6.8.4)(@codemirror/search@6.5.8)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.2)(@tiptap/pm@2.11.5)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+  '@defogdotai/agents-ui-components@1.8.0(@babel/runtime@7.26.7)(@codemirror/autocomplete@6.18.4)(@codemirror/language@6.10.8)(@codemirror/lint@6.8.4)(@codemirror/search@6.5.8)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.2)(@tiptap/pm@2.11.5)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       '@codemirror/lang-python': 6.1.7
       '@codemirror/lang-sql': 6.8.0
@@ -4642,6 +4667,8 @@ snapshots:
   '@floating-ui/utils@0.2.9': {}
 
   '@gar/promisify@1.1.3': {}
+
+  '@google/generative-ai@0.24.0': {}
 
   '@headlessui/react@2.2.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
