@@ -194,11 +194,12 @@ export function PDFDocument({
     try {
       chatManager.setActiveHighlight(highlight)
     } catch (error) {
+      console.error(error || 'Could not start conversation')
     } finally {
       // hide tooltip
       iframeRef.current.style.opacity = '0'
     }
-  }, [])
+  }, [chatManager])
 
   const toggleToc = useCallback(() => {
     if (!tocRef.current) return
@@ -300,7 +301,7 @@ export function PDFDocument({
     <div ref={ctrRef}>
       <IFrame
         ref={iframeRef}
-        className="w-60 shadow-md h-20 p-2 rounded-md bg-white border text-xs gap-2"
+        className="w-60 shadow-md h-20 p-2 rounded-md bg-white border text-xs"
         style={{
           opacity: 0,
           position: 'absolute',

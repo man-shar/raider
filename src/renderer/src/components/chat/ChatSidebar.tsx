@@ -86,6 +86,10 @@ export function ChatSidebar({
 
   const conversations = useMemo(() => file.conversation_history, [file])
 
+  useEffect(() => {
+    setActiveConversation(conversations?.length ? conversations[0] : null)
+  }, [fileManager])
+
   const [activeConversation, setActiveConversation] = useState<ConversationType | null>(null)
 
   const handleKeyPress = useCallback(
@@ -252,11 +256,11 @@ export function ChatSidebar({
           rootClassNames="sticky bottom-0"
           textAreaClassNames="max-h-60 overflow-auto shadow-none"
           label={
-            <div className="space-x-1">
+            <div className="space-x-1 text-gray-400 text-xs font-light">
               <span>Continue chatting</span>
-              <KeyboardShortcutIndicator keyValue="L" meta className="bg-white h-5" />
+              <KeyboardShortcutIndicator keyValue="L" meta inline />
               <span>or start a new conversation</span>
-              <KeyboardShortcutIndicator keyValue="N" meta className="bg-white h-5" />
+              <KeyboardShortcutIndicator keyValue="N" meta inline />
             </div>
           }
           placeholder="Paste images or text"

@@ -26,7 +26,6 @@ export function Highlights({ highlights = [], width, onHover }: HighlightsProps)
         height={'100%'}
       >
         <Tippy
-          onShown={() => console.log('shown')}
           render={(attrs) => (
             <div className="bg-white text-xs rounded-md border p-2" {...attrs}>
               <div className="flex flex-col gap-2">
