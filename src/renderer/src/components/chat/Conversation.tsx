@@ -85,10 +85,11 @@ const Message = forwardRef(
     }, [message.content, message.isLoading])
 
     useEffect(() => {
+      let taskId: string | null = null
+
       if (message.isLoading && message.terminateString) {
-        console.log('being called', message)
         // Create a task for this message generation
-        const taskId = statusManager.addTask({
+        taskId = statusManager.addTask({
           type: 'chat_completion',
           label: 'Generating response...'
         })
@@ -97,7 +98,7 @@ const Message = forwardRef(
 
         const messageCallback = (chunk: string) => {
           // Check if this is the terminate string
-          if (chunk === message.terminateString) {
+          if (chunk === message.terminateString && taskId) {
             // Message is complete, mark the task as completed
             statusManager.completeTask(taskId)
           } else {
@@ -108,6 +109,9 @@ const Message = forwardRef(
         const unsubChunk = window.chat.onChunkReceived(message.id, messageCallback)
 
         return () => {
+          if (taskId) {
+            statusManager.completeTask(taskId)
+          }
           unsubChunk()
         }
       }
@@ -139,13 +143,13 @@ const Message = forwardRef(
         <div className="text-xs text-gray-500 mb-2 w-full">
           <span className="grow">{message.role === 'user' ? 'Question' : 'Response'}</span>
         </div>
-        <span
+        <button
           className="text-xs self-end text-gray-300 cursor-pointer absolute top-1 right-2"
           onClick={() => console.log(message)}
           title="Click to log message details in console"
         >
           Log
-        </span>
+        </button>
         <div className="text-wrap break-all">
           {message.isLoading && !content ? (
             <div className="text-wrap break-all text-xs flex flex-row items-center gap-1" ref={ref}>

@@ -112,7 +112,7 @@ export function ChatSidebar({
           // For now, just log the message
           const newConversation = await chatManager
             .sendChatMessage({
-              conversationId: activeConversation?.id,
+              conversationId: activeConversation?.id || null,
               userInput: val,
               file: fileManager.getFile(),
               highlightedText: activeHighlight?.fullText || null,
@@ -139,7 +139,6 @@ export function ChatSidebar({
 
           textAreaRef.current.value = ''
         } catch (error) {
-          console.error(error.message)
           message.error(error.message)
         } finally {
           chatManager.setLoading(false)
@@ -172,8 +171,8 @@ export function ChatSidebar({
 
   return (
     <>
-      <div className="flex flex-col w-full h-full p-2 sticky top-0 z-20">
-        <div className="sticky top-0 mx-auto w-full z-50">
+      <div className="flex flex-col w-full h-full p-2 sticky top-0">
+        <div className="sticky top-0 mx-auto w-full">
           <ConversationHistory
             conversationHistory={conversations}
             onClick={(item) => {

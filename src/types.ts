@@ -42,7 +42,7 @@ export interface ImageData {
 }
 
 export interface NewMessageDetails {
-  conversationId: string
+  conversationId: string | null
   userInput: string
   highlightedText: string | null
   highlightId: string | null
@@ -66,11 +66,17 @@ export interface ProviderSettings {
   isEnabled: boolean
 }
 
+export interface ProviderConfigDbRow {
+  id: string
+  name: string
+  settings: string
+}
+
 export interface ProviderConfig {
   id: ProviderType
   name: string
   settings: ProviderSettings
-  models: AIModel[]
+  models?: AIModel[]
 }
 
 export interface ChatAPI {

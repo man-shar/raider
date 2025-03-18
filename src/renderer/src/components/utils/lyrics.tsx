@@ -156,7 +156,9 @@ export const LyricDisplay = ({ track = tracks[0] }: { track: Track }) => {
   const b = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    let interval: NodeJS.Timeout
+
+    function interp() {
       const lyrics = track.lyrics
 
       if (!a.current || !b.current || !lyrics.length) return
@@ -187,9 +189,15 @@ export const LyricDisplay = ({ track = tracks[0] }: { track: Track }) => {
           a.current.innerText = lyrics[(idx.current + 1) % lyrics.length]
         }, 500)
       }
-    }, 3000)
 
-    return () => clearInterval(interval)
+      interval = setTimeout(interp, 3000)
+    }
+
+    interval = setTimeout(interp, 1000)
+
+    return () => {
+      clearInterval(interval)
+    }
   }, [])
 
   return (

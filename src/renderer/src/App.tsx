@@ -119,7 +119,7 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
                 )}
               </div>
             ) : null}
-            <div ref={contentRef} className="view-ctr grow overflow-scroll relative z-10">
+            <div ref={contentRef} className="view-ctr grow overflow-scroll relative">
               <Nav
                 selectedFilePath={selectedFilePath}
                 fileManagers={fileManagers}
@@ -145,7 +145,7 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
                 }}
               />
 
-              <div className="files relative">
+              <div className="files relative z-1">
                 {fileManagers.map((mgr, index) => {
                   const file = mgr.getFile()
 
@@ -156,8 +156,8 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
                       className={twMerge(
                         'relative w-full',
                         selectedFilePath === file.path
-                          ? 'z-10 visible'
-                          : 'z-0 invisible absolute top-0 left-0 h-0 w-0 overflow-hidden'
+                          ? 'visible'
+                          : 'invisible absolute top-0 left-0 h-0 w-0 overflow-hidden'
                       )}
                       aria-hidden={selectedFilePath !== file.path}
                     >

@@ -123,9 +123,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Your API key is stored locally and is never sent to our servers.
-              </p>
             </div>
 
             <div className="mb-6">

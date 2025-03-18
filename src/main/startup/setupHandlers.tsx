@@ -13,8 +13,16 @@ import { updateFileHighlights } from '../file-handlers/updateHighlights'
 import { closeFile } from '../file-handlers/closeFile'
 import { getOpenFiles } from '../file-handlers/getOpenFiles'
 import { updateFileDetails } from '../file-handlers/updateFileDetails'
+import { createSqlTables } from './setupSQLTables'
+import { providerRegistry } from '../chat-handlers/providers/ProviderRegistry'
 
 export function setupHandlers() {
+  // Create database tables if they don't exist
+  createSqlTables()
+  
+  // Initialize provider registry (this will load settings from DB)
+  providerRegistry.getAllProviders() // Trigger initialization
+  
   // chat handlers
   ipcMain.handle('chat:send-message', sendChatMessage)
   

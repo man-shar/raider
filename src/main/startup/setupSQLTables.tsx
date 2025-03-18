@@ -47,8 +47,20 @@ export function createSqlTables() {
     );
   `)
 
+  // a table to store provider settings including API keys and model selection
+  const providersTable = db.prepare(`
+    CREATE TABLE IF NOT EXISTS providers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      settings JSON NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `)
+
   filesTable.run()
   openFilesTable.run()
+  providersTable.run()
 
   // Close the database connection
   db.close()

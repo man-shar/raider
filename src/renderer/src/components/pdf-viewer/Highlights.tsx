@@ -20,7 +20,7 @@ export function Highlights({ highlights = [], width, onHover }: HighlightsProps)
 
     return (
       <svg
-        className="absolute left-0 top-0 z-20 mix-blend-multiply pointer-events-none"
+        className="absolute left-0 top-0 z-2 mix-blend-multiply pointer-events-none"
         key={highlight.id}
         width={'100%'}
         height={'100%'}

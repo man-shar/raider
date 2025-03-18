@@ -77,10 +77,24 @@ export abstract class BaseProvider implements ProviderInterface {
   }
 
   async updateSettings(settings: Partial<ProviderSettings>): Promise<{ success: boolean }> {
+    // Apply the new settings
     this.settings = {
       ...this.settings,
       ...settings
     }
+
+    // Validate API key if provided
+    if (settings.apiKey !== undefined) {
+      try {
+        // You could add validation for API keys here if needed
+        // For example, making a test request to validate the key
+        console.log(`Updated API key for ${this.getProviderName()}`)
+      } catch (error) {
+        console.error(`Error validating API key for ${this.getProviderName()}:`, error)
+        // Still allow the update even if validation fails
+      }
+    }
+
     return { success: true }
   }
 
@@ -98,6 +112,7 @@ export abstract class BaseProvider implements ProviderInterface {
 
     try {
       if (!file) throw new Error('File not found')
+
       if (!this.settings.apiKey) {
         throw new Error(
           `API key not set for ${this.getProviderName()}. Please configure it in settings.`
@@ -110,7 +125,19 @@ export abstract class BaseProvider implements ProviderInterface {
 
       if (details.conversationId) {
         conversationId = details.conversationId
-        conversation = await getConversationFromDb(details.conversationId)
+
+        const { error, conversation: fetched } = getConversationFromDb({
+          path: file.path,
+          is_url: file.is_url,
+          name: file.name,
+          conversationId: details.conversationId
+        })
+
+        if (error || !fetched) {
+          throw error || 'Could not fetch conversation'
+        }
+
+        conversation = fetched
       } else {
         conversation = null
         conversationId = crypto.randomUUID()
