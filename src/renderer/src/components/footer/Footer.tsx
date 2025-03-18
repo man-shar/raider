@@ -10,7 +10,7 @@ export const Footer = () => {
     const unsubscribe = statusManager.subscribe(() => {
       setActiveTasks(statusManager.getActiveTasks())
     })
-    
+
     return unsubscribe
   }, [statusManager])
 
@@ -25,8 +25,8 @@ export const Footer = () => {
               <span className="mr-2">{task.label}</span>
               {task.progress !== undefined && (
                 <div className="w-24 bg-gray-200 rounded-full h-1.5 mr-2">
-                  <div 
-                    className="bg-blue-600 h-1.5 rounded-full" 
+                  <div
+                    className="bg-blue-600 h-1.5 rounded-full"
                     style={{ width: `${task.progress}%` }}
                   />
                 </div>
@@ -37,7 +37,7 @@ export const Footer = () => {
             </div>
           ))}
           {activeTasks.length > 0 && (
-            <button 
+            <button
               className="ml-auto text-gray-500 hover:text-gray-700"
               onClick={() => statusManager.clearCompletedTasks()}
             >

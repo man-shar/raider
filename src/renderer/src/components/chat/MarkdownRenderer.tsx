@@ -6,22 +6,41 @@ import { useEffect } from 'react'
 import { Markdown } from 'tiptap-markdown'
 
 interface MarkdownRendererProps {
-  content: string
+  content: string | any // Allow complex content types
   className?: string
 }
 
 const extensions = [StarterKit, MathExtension, Markdown]
 
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+  // Ensure content is a string before passing to the editor
+  const normalizedContent = typeof content === 'string' 
+    ? content 
+    : Array.isArray(content)
+      ? JSON.stringify(content)
+      : typeof content === 'object' && content !== null
+        ? JSON.stringify(content)
+        : String(content || '')
+  
   const editor = useEditor({
     extensions: extensions,
-    content: content,
+    content: normalizedContent,
     editable: false
   })
 
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content)
+    if (editor) {
+      const contentToSet = typeof content === 'string' 
+        ? content 
+        : Array.isArray(content)
+          ? JSON.stringify(content)
+          : typeof content === 'object' && content !== null
+            ? JSON.stringify(content)
+            : String(content || '')
+            
+      if (contentToSet !== editor.getHTML()) {
+        editor.commands.setContent(contentToSet)
+      }
     }
   }, [content, editor])
 

@@ -26,6 +26,52 @@
   display: none;
 }
 
+/* PDF Virtualization Styles */
+.pdf-virtualized-pages {
+  position: relative;
+  width: 100%;
+}
+
+.pdf-page-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.pdf-page-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* Ensure pages have consistent styling */
+.raider-pdf-page {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Chat message image styling */
+.chat-message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chat-message-images .image-container {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.chat-message-images img {
+  object-fit: contain;
+  display: block;
+  max-width: 100%;
+}
+
 kbd {
   @apply rounded-md p-1 bg-white font-mono text-xs font-bold border border-b-2 border-gray-300 mr-1 flex items-center justify-center gap-1;
 }

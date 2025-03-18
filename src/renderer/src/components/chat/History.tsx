@@ -27,9 +27,9 @@ export const ConversationHistory = ({
   })
 
   return (
-    <div className="history-ctr overflow-auto drop-shadow-lg flex flex-col items-center justify-center mx-auto border bg-white border-b-2 border-gray-200 rounded-3xl text-xs text-gray-600">
+    <div className="history-ctr overflow-auto text-sm text-gray-600 border-b *:transition-all *:duration-400">
       <div
-        className="history-label w-full flex flex-row items-start justify-center gap-2 cursor-pointer bg-gray-50 shadow-sm p-2 font-bold text-gray-500 sticky top-0"
+        className="history-label w-full gap-2 cursor-pointer p-2 font-light text-lg sticky top-0"
         onClick={(e) => {
           // to not conflict with the useclick above. this is fired first, then bubbles up to the body
           // prevent bubbling here
@@ -38,7 +38,8 @@ export const ConversationHistory = ({
           setShow(!show)
         }}
       >
-        {show ? 'Hide' : 'Show'} History
+        {/* {show ? 'Hide' : 'Show'} History */}
+        {!activeConversation ? 'New conversation' : activeConversation.messages[1].displayContent}
       </div>
       <div
         className={twMerge(
@@ -50,7 +51,7 @@ export const ConversationHistory = ({
           onClick={() => onClick(null)}
           className={twMerge(
             'hover:bg-gray-200 cursor-pointer p-2',
-            !activeConversation ? 'bg-gray-200 font-bold' : ''
+            !activeConversation ? 'bg-gray-200 font-bold text-gray-800' : 'hover:text-gray-500'
           )}
         >
           New
@@ -64,10 +65,12 @@ export const ConversationHistory = ({
                 onClick={() => onClick(item)}
                 className={twMerge(
                   'hover:bg-gray-200 cursor-pointer p-2',
-                  activeConversation?.id === item.id ? 'bg-gray-200 font-bold' : ''
+                  activeConversation?.id === item.id
+                    ? 'bg-gray-200 font-bold text-gray-800'
+                    : 'hover:text-gray-500'
                 )}
               >
-                {item.messages[1].displayContent ?? item.messages[1].content}
+                {item.messages[1].displayContent ?? JSON.stringify(item.messages[1].content)}
               </span>
             )
           })}

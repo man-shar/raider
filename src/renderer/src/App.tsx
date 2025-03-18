@@ -1,6 +1,6 @@
 import type { RaiderFile } from '@types'
 import { PDFDocument } from './components/pdf-viewer/PDFDocument'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
@@ -17,6 +17,7 @@ import {
 import { AppContextProvider } from './context/AppContext'
 import { Footer } from './components/footer/Footer'
 import { PDFManager } from './components/pdf-viewer/PDFManager'
+import debounce from 'lodash.debounce'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -30,6 +31,9 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(
     initialFiles.length ? initialFiles[0].path : null
   )
+  // Track PDF container width
+  const [contentWidth, setContentWidth] = useState<number>(800)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const selectedFileManager = useMemo(() => {
     if (!selectedFilePath || !fileManagers || !fileManagers.length) return null
@@ -60,6 +64,36 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
 
   const message = useRef(MessageManager())
 
+  // Calculate and update content width
+  const updateContentWidth = useCallback(() => {
+    setContentWidth((prev) => {
+      if (contentRef.current) {
+        const newWidth = contentRef.current.clientWidth
+        if (newWidth > 0 && Math.abs(newWidth - prev) > 10) {
+          return newWidth
+        }
+      }
+
+      return prev
+    })
+  }, [])
+
+  // Update content width on resize and when selected file changes
+  useEffect(() => {
+    updateContentWidth()
+
+    const handleResize = debounce(updateContentWidth, 200)
+
+    window.addEventListener('resize', handleResize)
+
+    // Handle initial render and post-layout adjustments
+    setTimeout(updateContentWidth, 100)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [updateContentWidth, selectedFilePath])
+
   const handleSelectFile = useRef(async () => {
     const { files, error } = await window.fileHandler.selectFile()
     if (error || !files) {
@@ -85,7 +119,7 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
                 )}
               </div>
             ) : null}
-            <div className="view-ctr grow overflow-scroll">
+            <div ref={contentRef} className="view-ctr grow overflow-scroll relative z-10">
               <Nav
                 selectedFilePath={selectedFilePath}
                 fileManagers={fileManagers}
@@ -114,19 +148,22 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
               <div className="files relative">
                 {fileManagers.map((mgr, index) => {
                   const file = mgr.getFile()
-                  
+
                   // Keep all components but hide non-active ones
                   return (
                     <div
                       key={index}
                       className={twMerge(
-                        'relative', 
-                        selectedFilePath === file.path ? 'z-10 visible' : 'z-0 invisible absolute top-0 left-0 h-0 w-0 overflow-hidden'
+                        'relative w-full',
+                        selectedFilePath === file.path
+                          ? 'z-10 visible'
+                          : 'z-0 invisible absolute top-0 left-0 h-0 w-0 overflow-hidden'
                       )}
                       aria-hidden={selectedFilePath !== file.path}
                     >
                       <PDFDocument
                         pdfManager={mgr}
+                        width={contentWidth}
                         onTextExtracted={async (fullText, pageWiseText) => {
                           await window.fileHandler.updateFileDetails(
                             file.path,

@@ -28,7 +28,7 @@ export class AnthropicProvider extends BaseProvider {
     }
   }
   
-  // Default model if none is selected
+  // Default model if none is selected (all Claude 3 models support vision)
   private readonly DEFAULT_MODEL = 'claude-3-sonnet-20240229'
   
   // Provider info
@@ -77,6 +77,18 @@ export class AnthropicProvider extends BaseProvider {
   async createCompletionStream(messages: any[], model: string): Promise<CompletionStream> {
     const client = this.createClient()
     const actualModel = model || this.DEFAULT_MODEL
+    
+    // Check if any message contains images
+    const hasImages = messages.some(msg => 
+      Array.isArray(msg.content) && 
+      msg.content.some(item => item.type === 'image')
+    )
+    
+    // If images are present, ensure we use a Claude 3 model (supports vision)
+    if (hasImages && actualModel.includes('claude-2')) {
+      console.log(`Model ${actualModel} doesn't support vision. Switching to claude-3-sonnet for image support.`)
+      actualModel = 'claude-3-sonnet-20240229'
+    }
     
     // Convert messages from OpenAI format to Anthropic format
     const anthropicMessages = this.convertToAnthropicMessages(messages)
@@ -163,10 +175,27 @@ export class AnthropicProvider extends BaseProvider {
     // Filter out system messages as they're handled separately
     return messages
       .filter(m => m.role !== 'system')
-      .map(m => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content
-      }))
+      .map(m => {
+        // Handle both text-only and multimodal messages
+        if (typeof m.content === 'string') {
+          return {
+            role: m.role === 'assistant' ? 'assistant' : 'user',
+            content: m.content
+          }
+        } else if (Array.isArray(m.content)) {
+          // This is a multimodal message
+          return {
+            role: m.role === 'assistant' ? 'assistant' : 'user',
+            content: m.content
+          }
+        } else {
+          // Fallback for any other format
+          return {
+            role: m.role === 'assistant' ? 'assistant' : 'user',
+            content: String(m.content || '')
+          }
+        }
+      })
   }
   
   // Simple token count estimation (rough approximation)
@@ -180,7 +209,8 @@ export class AnthropicProvider extends BaseProvider {
     conversation: ConversationType | null,
     userInput: string,
     highlightedText: string | null,
-    fileText: string | null
+    fileText: string | null,
+    images?: { id: string; base64: string; loading: boolean }[]
   ): Promise<{
     initialMessages: any[]
     newMsgId: string
@@ -215,11 +245,32 @@ export class AnthropicProvider extends BaseProvider {
           content: sysPrompt.trim() 
         }]
     
-    // Add user message
-    initialMessages.push({
-      role: 'user',
-      content: userPrompt.trim()
-    })
+    // Add user message with any images
+    if (images && images.length > 0) {
+      // Format for Anthropic multimodal messages
+      const userMessage = {
+        role: 'user',
+        content: [
+          { type: 'text', text: userPrompt.trim() },
+          // Add images to the message
+          ...images.map(img => ({
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: img.base64.split(';')[0].replace('data:', ''),
+              data: img.base64.split(',')[1] // Remove the data:image/png;base64, prefix
+            }
+          }))
+        ]
+      }
+      initialMessages.push(userMessage)
+    } else {
+      // Text-only message
+      initialMessages.push({
+        role: 'user',
+        content: userPrompt.trim()
+      })
+    }
 
     const newMsgId = crypto.randomUUID()
     const terminateString = `__TERMINATE_${crypto.randomUUID()}__`

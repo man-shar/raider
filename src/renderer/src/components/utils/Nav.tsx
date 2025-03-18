@@ -22,7 +22,7 @@ export function Nav({
 
   return (
     <>
-      <div className="tabs w-full h-10 flex flex-row border-b border-b-gray-200 fixed top-0 z-10 bg-white divide-x divide-gray-300">
+      <div className="tabs w-full h-10 flex flex-row border-b border-b-gray-200 fixed top-0 z-50 bg-white divide-x divide-gray-300">
         {fileManagers.map((mgr, index) => {
           const file = mgr.getFile()
 

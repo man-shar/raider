@@ -1,4 +1,4 @@
-import { AIModel, ConversationType, ProviderType } from '@types'
+import { AIModel, ConversationType, MessageWithHighlights, ProviderType } from '@types'
 import OpenAI from 'openai'
 import { BaseProvider, CompletionStream, ProviderCostConfig } from './BaseProvider'
 import systemPromptWithHighlight from '../prompts/sys-with-highlight.txt?raw'
@@ -29,108 +29,141 @@ export class OpenAIProvider extends BaseProvider {
       output: 0.15
     }
   }
-  
-  // Default model if none is selected
-  private readonly DEFAULT_MODEL = 'gpt-4o-mini'
-  
+
+  // Default model if none is selected (must support vision for images)
+  private readonly DEFAULT_MODEL = 'gpt-4o'
+
   // Provider info
   getProviderId(): ProviderType {
     return 'openai'
   }
-  
+
   getProviderName(): string {
     return 'OpenAI'
   }
-  
+
   getDefaultModel(): string {
     return this.DEFAULT_MODEL
   }
-  
+
   // Create OpenAI client
   private createClient(): OpenAI {
     return new OpenAI({
       apiKey: this.settings.apiKey
     })
   }
-  
+
   // Get available models
-  async getAvailableModels(): Promise<{ models: AIModel[], error: string | null }> {
+  async getAvailableModels(): Promise<{ models: AIModel[]; error: string | null }> {
     try {
       if (!this.settings.apiKey) {
         return { models: [], error: 'API key not set' }
       }
-      
+
       const client = this.createClient()
       const response = await client.models.list()
-      
+
       // Filter to include only GPT models
       const chatModels = response.data
-        .filter(model => model.id.includes('gpt'))
-        .map(model => ({
+        .filter((model) => model.id.includes('gpt'))
+        .map((model) => ({
           id: model.id,
           name: model.id,
           provider: this.getProviderId()
         }))
-      
+
       return { models: chatModels, error: null }
     } catch (error) {
       console.error('Error fetching OpenAI models:', error)
       return { models: [], error: error.message }
     }
   }
-  
+
   // Create a stream for the completion
   async createCompletionStream(messages: any[], model: string): Promise<CompletionStream> {
     const client = this.createClient()
-    const actualModel = model || this.DEFAULT_MODEL
-    
-    const stream = await client.chat.completions.create({
+    let actualModel = model || this.DEFAULT_MODEL
+
+    // Check if any message contains images
+    const hasImages = messages.some(
+      (msg) => Array.isArray(msg.content) && msg.content.some((item) => item.type === 'image_url')
+    )
+
+    // If images are present, ensure we use a vision-capable model
+    if (hasImages) {
+      // Only gpt-4o and gpt-4-vision support images
+      if (!actualModel.includes('gpt-4o') && !actualModel.includes('gpt-4-vision')) {
+        console.log(
+          `Model ${actualModel} doesn't support vision. Switching to gpt-4o for image support.`
+        )
+        actualModel = 'gpt-4o'
+      }
+    }
+
+    const response = await client.chat.completions.create({
       model: actualModel,
       messages,
       stream: true,
-      stream_options: { include_usage: true }
+      stream_options: { include_usage: true },
+      max_tokens: 4096 // Set reasonable token limit
     })
-    
+
+    // Store iterator state to avoid consuming stream multiple times
+    let streamIterator = response[Symbol.asyncIterator]()
+    let lastIterResult: any = null
+
     // Create a wrapper around the stream to standardize the format
     const wrappedStream: CompletionStream = {
       next: async () => {
-        const { value, done } = await stream[Symbol.asyncIterator]().next()
-        
-        if (done) {
-          return { value: { content: '' }, done: true }
-        }
-        
-        return {
-          value: {
-            content: value.choices[0]?.delta?.content || '',
-            usage: {
-              promptTokens: value.usage?.prompt_tokens || 0,
-              completionTokens: value.usage?.completion_tokens || 0,
-              cachedTokens: value.usage?.prompt_tokens_details?.cached_tokens || 0
-            }
-          },
-          done: false
+        try {
+          // Get the next chunk from the stream
+          const iterResult = await streamIterator.next()
+          lastIterResult = iterResult
+
+          if (iterResult.done) {
+            return { value: { content: '' }, done: true }
+          }
+
+          const value = iterResult.value
+
+          return {
+            value: {
+              content: value.choices[0]?.delta?.content || '',
+              usage: {
+                promptTokens: value.usage?.prompt_tokens || 0,
+                completionTokens: value.usage?.completion_tokens || 0,
+                cachedTokens: value.usage?.prompt_tokens_details?.cached_tokens || 0
+              }
+            },
+            done: false
+          }
+        } catch (error) {
+          console.error('Error in OpenAI stream iterator:', error)
+          // Return an empty result on error, allowing the stream to continue
+          return { value: { content: '' }, done: lastIterResult?.done || false }
         }
       },
-      [Symbol.asyncIterator]: function() {
-        const iterator = {
+      [Symbol.asyncIterator]: function () {
+        // Return a proper async iterator that uses our stored state
+        return {
           next: this.next
-        }
-        return iterator as AsyncIterator<any>
+        } as AsyncIterator<any>
       }
     }
-    
+
     return wrappedStream
   }
-  
+
   // Prepare messages with appropriate prompts
   async prepareMessages(
     conversation: ConversationType | null,
     userInput: string,
     highlightedText: string | null,
-    fileText: string | null
+    highlightId: string | null,
+    fileText: string | null,
+    images?: { id: string; base64: string; loading: boolean }[]
   ): Promise<{
-    initialMessages: any[]
+    initialMessages: MessageWithHighlights[]
     newMsgId: string
     terminateString: string
   }> {
@@ -154,27 +187,54 @@ export class OpenAIProvider extends BaseProvider {
 
     // Use existing conversation messages or create new ones
     const initialMessages = conversation
-      ? conversation.messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }))
+      ? conversation.messages
       : [
           {
+            id: crypto.randomUUID(),
             role: 'system',
             content: sysPrompt.trim()
           }
         ]
-    
-    // Add the new user message
-    initialMessages.push({
-      role: 'user',
-      content: userPrompt.trim()
-    })
-    
+
+    // Prepare the user message
+    if (images && images.length > 0) {
+      // Use content array format for multimodal messages with images
+      const userMessage: MessageWithHighlights = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        displayContent: userInput,
+        highlightedText,
+        highlightId,
+        content: [
+          { type: 'text', text: userPrompt.trim() },
+          // Add images as additional content items
+          ...images.map((img) => ({
+            type: 'image_url',
+            image_url: {
+              url: img.base64,
+              detail: 'high'
+            }
+          }))
+        ]
+      }
+
+      initialMessages.push(userMessage)
+    } else {
+      // Simple text-only message
+      initialMessages.push({
+        id: crypto.randomUUID(),
+        role: 'user',
+        highlightedText,
+        highlightId,
+        content: userPrompt.trim(),
+        displayContent: userInput
+      })
+    }
+
     // Create a unique ID for the message and a terminate string
     const newMsgId = crypto.randomUUID()
     const terminateString = `__TERMINATE_${crypto.randomUUID()}__`
-    
+
     return {
       initialMessages,
       newMsgId,

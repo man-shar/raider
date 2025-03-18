@@ -1,11 +1,15 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 
+type MessageContent =
+  | string
+  | { type: string; text?: string; image_url?: { url: string; detail: string } }[]
+
 export interface MessageWithHighlights {
   id: string
   role: string
-  content: string
-  isLoading?: boolean
+  content: MessageContent
   displayContent?: string
+  isLoading?: boolean
   highlightedText?: string | null
   highlightId?: string | null
   terminateString?: string
@@ -28,6 +32,12 @@ export interface ConversationType {
   }
 }
 
+export interface ImageData {
+  id: string
+  base64: string
+  loading: boolean
+}
+
 export interface MessageDetails {
   conversation: ConversationType | null
   userInput: string
@@ -36,6 +46,7 @@ export interface MessageDetails {
   file: RaiderFile | null
   fileText: string | null
   providerId?: ProviderType
+  images?: ImageData[] // Array of base64 encoded images
 }
 
 export interface AIModel {
@@ -69,13 +80,18 @@ export interface ChatAPI {
    * Returns a function that can be called to unsubscribe the listener.
    */
   onChunkReceived: (messageId: string, callback: (chunk: string) => void) => () => void
-  
+
   // Provider and model management
   getProviders: () => Promise<ProviderConfig[]>
-  updateProviderSettings: (providerId: ProviderType, settings: Partial<ProviderSettings>) => Promise<{ success: boolean }>
+  updateProviderSettings: (
+    providerId: ProviderType,
+    settings: Partial<ProviderSettings>
+  ) => Promise<{ success: boolean }>
   getActiveProvider: () => Promise<ProviderType>
   setActiveProvider: (providerId: ProviderType) => Promise<{ success: boolean }>
-  getAvailableModels: (providerId: ProviderType) => Promise<{ models: AIModel[], error: string | null }>
+  getAvailableModels: (
+    providerId: ProviderType
+  ) => Promise<{ models: AIModel[]; error: string | null }>
 }
 
 // ---- File related types

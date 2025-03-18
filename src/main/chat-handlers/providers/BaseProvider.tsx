@@ -1,4 +1,11 @@
-import { AIModel, ConversationType, MessageDetails, ProviderSettings, ProviderType } from '@types'
+import {
+  AIModel,
+  ConversationType,
+  MessageDetails,
+  MessageWithHighlights,
+  ProviderSettings,
+  ProviderType
+} from '@types'
 import { BrowserWindow } from 'electron'
 import { globals } from '../../constants'
 import { addOrUpdateConversationInDb } from '../../db/chatUtils'
@@ -87,7 +94,8 @@ export abstract class BaseProvider implements ProviderInterface {
   async startChatCompletion(
     details: MessageDetails
   ): Promise<ConversationType | { error: string }> {
-    const { conversation, userInput, highlightedText, file, fileText } = details
+    const { conversation, userInput, highlightedText, highlightId, file, fileText, images } =
+      details
 
     try {
       if (!file) throw new Error('File not found')
@@ -106,7 +114,9 @@ export abstract class BaseProvider implements ProviderInterface {
         conversation,
         userInput,
         highlightedText,
-        fileText
+        highlightId,
+        fileText,
+        images
       )
 
       // Create a blank assistant message to show in the UI while streaming
@@ -117,7 +127,6 @@ export abstract class BaseProvider implements ProviderInterface {
         content: '',
         highlightedText: null,
         highlightId: null,
-        displayContent: '',
         terminateString
       }
 
@@ -186,39 +195,53 @@ export abstract class BaseProvider implements ProviderInterface {
       let i = 0
       let fullResponse = ''
 
-      // Process the stream
-      for await (const chunk of stream) {
-        // Update token counts
-        tokens.prompt += chunk.usage?.promptTokens || 0
-        tokens.cachedInput += chunk.usage?.cachedTokens || 0
-        tokens.completion += chunk.usage?.completionTokens || 0
+      // Process the stream using manual iteration to better handle errors
+      let done = false
+      while (!done) {
+        try {
+          const { value: chunk, done: streamDone } = await stream.next()
+          done = streamDone
 
-        // Send content to the UI
-        const chunkContent = chunk.content || ''
-        if (mainWindow) {
-          mainWindow.webContents.send(newMsgId, chunkContent)
+          if (streamDone) break
+          // Update token counts
+          tokens.prompt += chunk.usage?.promptTokens || 0
+          tokens.cachedInput += chunk.usage?.cachedTokens || 0
+          tokens.completion += chunk.usage?.completionTokens || 0
+
+          // Send content to the UI
+          const chunkContent = chunk.content || ''
+          if (mainWindow) {
+            mainWindow.webContents.send(newMsgId, chunkContent)
+          }
+
+          // Update the full response
+          fullResponse += chunkContent
+
+          // Periodically update the conversation in the database
+          if (i % 100 === 0) {
+            addOrUpdateConversationInDb({
+              path: file.path,
+              is_url: file.is_url,
+              name: file.name,
+              conversation: {
+                ...conversation,
+                messages: [
+                  ...initialMessages,
+                  { role: 'assistant', content: fullResponse, id: newMsgId, isLoading: true }
+                ]
+              }
+            })
+          }
+
+          i++
+        } catch (streamError) {
+          console.error(`Error iterating stream:`, streamError)
+          done = true
+          // Only break the loop, don't rethrow if it's just a consumed stream error
+          if (streamError.message && !streamError.message.includes('consumed stream')) {
+            throw streamError
+          }
         }
-
-        // Update the full response
-        fullResponse += chunkContent
-
-        // Periodically update the conversation in the database
-        if (i % 100 === 0) {
-          addOrUpdateConversationInDb({
-            path: file.path,
-            is_url: file.is_url,
-            name: file.name,
-            conversation: {
-              ...conversation,
-              messages: [
-                ...initialMessages,
-                { role: 'assistant', content: fullResponse, id: newMsgId, isLoading: true }
-              ]
-            }
-          })
-        }
-
-        i++
       }
 
       // Calculate total cost
@@ -237,6 +260,21 @@ export abstract class BaseProvider implements ProviderInterface {
       }
 
       // Update the conversation with the final response
+      // Don't double-stringify content that might already be stringified
+      const normalizedMessages = initialMessages.map((msg) => {
+        // If it's already a string, keep it as is
+        if (typeof msg.content === 'string') {
+          return msg
+        }
+
+        // For object content, store it directly in the message
+        // The database serialization will handle this properly
+        return {
+          ...msg,
+          content: msg.content
+        }
+      })
+
       addOrUpdateConversationInDb({
         path: file.path,
         is_url: file.is_url,
@@ -244,7 +282,7 @@ export abstract class BaseProvider implements ProviderInterface {
         conversation: {
           ...conversation,
           messages: [
-            ...initialMessages,
+            ...normalizedMessages,
             { role: 'assistant', content: fullResponse, id: newMsgId, isLoading: false }
           ],
           tokens,
@@ -261,6 +299,20 @@ export abstract class BaseProvider implements ProviderInterface {
       }
 
       // Add error message to conversation
+      // Don't double-stringify message content
+      const normalizedMessages = initialMessages.map((msg) => {
+        // If it's already a string, keep it as is
+        if (typeof msg.content === 'string') {
+          return msg
+        }
+
+        // For object content, store it directly without additional stringifying
+        return {
+          ...msg,
+          content: msg.content
+        }
+      })
+
       addOrUpdateConversationInDb({
         path: file.path,
         is_url: file.is_url,
@@ -268,7 +320,7 @@ export abstract class BaseProvider implements ProviderInterface {
         conversation: {
           ...conversation,
           messages: [
-            ...initialMessages,
+            ...normalizedMessages,
             {
               role: 'assistant',
               content: `Error: ${error.message}`,
@@ -286,9 +338,11 @@ export abstract class BaseProvider implements ProviderInterface {
     conversation: ConversationType | null,
     userInput: string,
     highlightedText: string | null,
-    fileText: string | null
+    highlightId: string | null,
+    fileText: string | null,
+    images?: { id: string; base64: string; loading: boolean }[]
   ): Promise<{
-    initialMessages: any[]
+    initialMessages: MessageWithHighlights[]
     newMsgId: string
     terminateString: string
   }>

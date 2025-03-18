@@ -1,19 +1,28 @@
-import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Document, Outline, Page } from 'react-pdf'
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from 'react'
+import { Document, Outline } from 'react-pdf'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { HighlightType } from '@types'
 import LinkService from 'react-pdf/src/LinkService.js'
 import { ScrollPageIntoViewArgs } from 'react-pdf/src/shared/types.js'
 import { IFrame } from '../utils/Iframe'
-import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
+import { Collapse, MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
 import debounce from 'lodash.debounce'
-import { Highlights } from './Highlights'
 import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
 import { createHighlightFromSelection } from '@renderer/utils'
 import { useClick } from '@renderer/hooks/useClick'
 import { AppContext } from '@renderer/context/AppContext'
 import { PDFManager } from './PDFManager'
+import { PDFPageVirtualizer } from './PDFPageVirtualizer'
+import { BUFFER_SIZE } from '../utils/constants'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -26,10 +35,12 @@ interface DocumentRef {
 
 export function PDFDocument({
   pdfManager,
-  onTextExtracted
+  onTextExtracted,
+  width = 500 // Accept width as a prop with default value
 }: {
   pdfManager: PDFManager
   onTextExtracted: (fullText: string, pageWiseText: { [pageNumber: number]: string }) => void
+  width?: number
 }) {
   const [numPages, setNumPages] = useState<number>()
   const pageWiseText = useRef<{ [pageNumber: number]: string }>({})
@@ -44,11 +55,21 @@ export function PDFDocument({
     standardFontDataUrl: '/standard_fonts/'
   })
 
+  // Store refs to all page wrappers to access their positions
+  const pageRefs = useRef<(HTMLDivElement | null)[]>(Array(numPages || 0).fill(null))
+
+  // Set page ref
+  const setPageRef = (index: number) => (el: HTMLDivElement | null) => {
+    pageRefs.current[index] = el
+  }
+
   const { statusManager } = useContext(AppContext)
 
   const onDocumentLoadSuccess = useCallback(
     async (pdf: PDFDocumentProxy) => {
       setNumPages(pdf.numPages)
+      // Initialize refs
+      pageRefs.current = Array.from({ length: pdf.numPages }).map(() => null)
 
       if (!file.details.fullText) {
         const start = performance.now()
@@ -213,15 +234,7 @@ export function PDFDocument({
     }
   }, [])
 
-  const [width, setWidth] = useState<number>(500)
-
-  const handleResize = useCallback(() => {
-    if (!ctrRef.current) {
-      setWidth(500)
-    } else {
-      setWidth(ctrRef.current?.clientWidth < 500 ? 500 : ctrRef?.current?.clientWidth)
-    }
-  }, [])
+  // Using width directly from props
 
   const createNewHighlight = useCallback(
     async (highlight: HighlightType | null = null) => {
@@ -288,17 +301,106 @@ export function PDFDocument({
     if (!ctrRef.current) return
 
     document.addEventListener('selectionchange', handleSelectionChange)
-    window.addEventListener('resize', debounce(handleResize, 200))
-
-    handleResize()
 
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange)
     }
-  }, [createNewHighlight, handleResize, handleSelectionChange])
+  }, [createNewHighlight, handleSelectionChange])
+
+  // Track which pages should have active content
+  const [activePages, setActivePages] = useState<number[]>([])
+  const scrollContainerRef = useRef<HTMLElement | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
+
+  // Calculate which pages should be active based on scroll position
+  const updateActivePages = useCallback(() => {
+    if (!scrollContainerRef.current || !ctrRef.current || !numPages) return
+
+    const scrollContainer = scrollContainerRef.current
+
+    // Find visible pages
+    const visiblePages: number[] = []
+
+    for (let i = 0; i < numPages; i++) {
+      const pageElement = pageRefs.current[i]
+      if (!pageElement) continue
+
+      const rect = pageElement.getBoundingClientRect()
+      const containerRect = scrollContainer.getBoundingClientRect()
+
+      // Check if page is in viewport
+      if (rect.bottom > containerRect.top && rect.top < containerRect.bottom) {
+        visiblePages.push(i)
+      }
+    }
+
+    if (visiblePages.length === 0) {
+      // If no pages are visible (rare case), don't change anything
+      return
+    }
+
+    // Find range of pages to render (visible pages + buffer)
+    const minVisiblePage = Math.min(...visiblePages)
+    const maxVisiblePage = Math.max(...visiblePages)
+
+    const startPage = Math.max(0, minVisiblePage - BUFFER_SIZE)
+    const endPage = Math.min(numPages - 1, maxVisiblePage + BUFFER_SIZE)
+
+    // Create array of page indices to render
+    const newActivePages: number[] = []
+    for (let i = startPage; i <= endPage; i++) {
+      newActivePages.push(i)
+    }
+
+    setActivePages(newActivePages)
+  }, [numPages])
+
+  // Initialize scrolling and page visibility detection
+  useEffect(() => {
+    if (!ctrRef.current || !numPages) return
+
+    // Find scroll container
+    const scrollContainer = ctrRef.current.closest('.view-ctr') as HTMLElement
+    if (!scrollContainer) return
+
+    scrollContainerRef.current = scrollContainer
+
+    // Handle scroll events with throttling via requestAnimationFrame
+    let ticking = false
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          updateActivePages()
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+
+    // Add event listeners
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleScroll, { passive: true })
+
+    // Initialize active pages
+    // Start with first few pages active
+    const initialActivePages = Array.from({ length: Math.min(5, numPages) }, (_, i) => i)
+    setActivePages(initialActivePages)
+
+    // After a delay, perform the first real calculation
+    const initTimer = setTimeout(() => {
+      setIsInitializing(false)
+      updateActivePages()
+    }, 500)
+
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleScroll)
+      clearTimeout(initTimer)
+    }
+  }, [ctrRef, numPages, updateActivePages])
 
   return (
-    <div ref={ctrRef}>
+    <div ref={ctrRef} className="w-full">
       <IFrame
         ref={iframeRef}
         className="w-60 shadow-md h-20 p-2 rounded-md bg-white border text-xs"
@@ -323,23 +425,35 @@ export function PDFDocument({
           onLoadSuccess={onDocumentLoadSuccess}
           options={options.current}
           className="relative pdf-document"
+          onClick={(e) => {
+            // if this is a link, open in browser
+            if (e.target instanceof HTMLAnchorElement) {
+              e.preventDefault()
+              window.open(e.target.href, '_blank')
+            }
+          }}
+          onItemClick={async ({ pageNumber }) => {
+            // scroll document to the page ref
+            const pageRef = pageRefs.current[pageNumber - 1]
+            if (pageRef) {
+              pageRef.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+              })
+            }
+          }}
         >
-          {Array.from(new Array(numPages)).map((_, index) => (
-            <Page
-              pageIndex={index}
+          {numPages && (
+            <PDFPageVirtualizer
+              numPages={numPages}
               width={width}
-              key={`page_${index + 1}`}
-              className="mb-4 raider-pdf-page"
-            >
-              <Highlights
-                onHover={(highlight) => (highlightHovered.current = highlight)}
-                highlights={file.highlights.filter(
-                  (highlight) => highlight.pageNumber === index + 1
-                )}
-                width={width}
-              />
-            </Page>
-          ))}
+              highlights={file.highlights}
+              onHover={(highlight) => (highlightHovered.current = highlight)}
+              activePages={activePages}
+              isInitializing={isInitializing}
+              setPageRef={setPageRef}
+            />
+          )}
           <div
             className="hidden fixed max-h-96 overflow-auto top-20 left-1/12 mx-auto z-10 px-4 py-2 bg-gray-600 text-gray-200 border border-gray-200 shadow rounded-md text-xs w-10/12"
             ref={tocRef}

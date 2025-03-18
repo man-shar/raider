@@ -24,26 +24,26 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   const [activeProvider, setActiveProviderState] = useState<ProviderType>('openai')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Initialize providers on component mount
   useEffect(() => {
     refreshProviders()
   }, [])
-  
+
   // Refresh the list of providers and their settings
   const refreshProviders = async () => {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       // Get all providers
       const allProviders = await window.chat.getProviders()
       setProviders(allProviders)
-      
+
       // Get active provider
       const active = await window.chat.getActiveProvider()
       setActiveProviderState(active)
-      
+
       // For each provider with an API key, fetch models
       for (const provider of allProviders) {
         if (provider.settings.apiKey) {
@@ -56,20 +56,20 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       setIsLoading(false)
     }
   }
-  
+
   // Update a provider's settings
   const updateProvider = async (providerId: ProviderType, settings: Partial<ProviderSettings>) => {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       await window.chat.updateProviderSettings(providerId, settings)
-      
+
       // If the API key changed, refresh models
       if (settings.apiKey !== undefined) {
         await refreshModels(providerId)
       }
-      
+
       // Update the providers list
       await refreshProviders()
     } catch (err) {
@@ -78,13 +78,13 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       setIsLoading(false)
     }
   }
-  
+
   // Set the active provider
   const setActiveProvider = async (providerId: ProviderType) => {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       await window.chat.setActiveProvider(providerId)
       setActiveProviderState(providerId)
     } catch (err) {
@@ -93,20 +93,20 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       setIsLoading(false)
     }
   }
-  
+
   // Refresh the list of models for a provider
   const refreshModels = async (providerId: ProviderType) => {
     try {
       const response = await window.chat.getAvailableModels(providerId)
-      
+
       if (response.error) {
         setError(response.error)
         return
       }
-      
+
       // Update the provider's models
-      setProviders(prevProviders => 
-        prevProviders.map(provider => {
+      setProviders((prevProviders) =>
+        prevProviders.map((provider) => {
           if (provider.id === providerId) {
             return {
               ...provider,
@@ -120,7 +120,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       setError('Failed to fetch models: ' + (err.message || String(err)))
     }
   }
-  
+
   const providerSettings = {
     providers,
     activeProvider,
@@ -131,18 +131,14 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     refreshModels,
     refreshProviders
   }
-  
+
   const contextValue: AppContextType = {
     chatManager: ChatManager(),
     statusManager: createStatusManager(),
     providerSettings
   }
-  
-  return (
-    <AppContext.Provider value={contextValue}>
-      {children}
-    </AppContext.Provider>
-  )
+
+  return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
 }
 
 // Create the context with default values

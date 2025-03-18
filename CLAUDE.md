@@ -23,8 +23,9 @@
 ## Project Architecture
 
 - Electron app with React frontend
-- PDF viewer with highlight capabilities
-- Chat interface with OpenAI integration
+- PDF viewer with highlight capabilities 
+- Chat interface with OpenAI and Anthropic integration
+- Multi-modal support for text and images in chat
 - SQLite database for persistence
 
 ## UI Components and Libraries
@@ -32,6 +33,7 @@
 - **Tiptap**: Used for Markdown rendering with LaTeX support
 - **KaTeX**: Mathematical formula rendering
 - **Tailwind**: Utility-first CSS framework
+- **PDFPageVirtualizer**: Custom component for efficient PDF rendering with virtualization
 
 ## Component Implementation Patterns
 
@@ -54,6 +56,8 @@
   - Debounce content updates in editors to prevent excessive re-rendering
   - Use feature detection to only apply markdown rendering when needed
   - Set explicit keys on list items for better React reconciliation
+  - PDF virtualization: Only render visible pages (active ±2) to improve performance
+  - Use placeholders with correct dimensions for non-visible PDF pages to maintain scroll position
 - **Error Handling**: Gracefully handle streaming failures and incomplete markdown
 
 ## API Usage

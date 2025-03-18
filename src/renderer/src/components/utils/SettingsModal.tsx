@@ -13,7 +13,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { providerSettings } = useContext(AppContext)
   const [selectedProvider, setSelectedProvider] = useState<ProviderType>('openai')
   const [showApiKey, setShowApiKey] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const [selectedModel, setSelectedModel] = useState('')
 
@@ -63,9 +62,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       // Set the active provider
       await providerSettings.setActiveProvider(selectedProvider)
-
-      setIsSaved(true)
-      setTimeout(() => setIsSaved(false), 2000)
     } catch (error) {
       console.error('Failed to save settings:', error)
     }
@@ -92,12 +88,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       {providerSettings.error && (
         <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md text-sm">
           {providerSettings.error}
-        </div>
-      )}
-
-      {isSaved && (
-        <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md text-sm">
-          Settings saved successfully!
         </div>
       )}
 
