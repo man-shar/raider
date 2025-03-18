@@ -6,37 +6,31 @@ import {
   FileAPI,
   FileDetails,
   HighlightType,
-  MessageDetails
+  NewMessageDetails
 } from '../types'
 
 // Custom APIs for renderer
 const chat: ChatAPI = {
   // Add chat-related methods
-  sendChatMessage: (details: MessageDetails): Promise<ConversationType> => {
+  sendChatMessage: (details: NewMessageDetails): Promise<ConversationType> => {
     return ipcRenderer.invoke('chat:send-message', details)
   },
 
   onChunkReceived: (conversationId: string, callback: (chunk: string) => void) => {
-    console.log('now subbing', conversationId)
     const eventTargetRef = ipcRenderer.on(conversationId, (_event, value) => callback(value))
 
     return () => {
-      console.log('now unsubbing', conversationId)
-      console.log('before unsubbing', eventTargetRef.listeners(conversationId))
       eventTargetRef.removeAllListeners(conversationId)
-      console.log('after unsubbing', eventTargetRef.listeners(conversationId))
     }
   },
-  
+
   // Provider and model management
   getProviders: () => ipcRenderer.invoke('chat:get-providers'),
-  updateProviderSettings: (providerId, settings) => 
+  updateProviderSettings: (providerId, settings) =>
     ipcRenderer.invoke('chat:update-provider-settings', providerId, settings),
   getActiveProvider: () => ipcRenderer.invoke('chat:get-active-provider'),
-  setActiveProvider: (providerId) => 
-    ipcRenderer.invoke('chat:set-active-provider', providerId),
-  getAvailableModels: (providerId) => 
-    ipcRenderer.invoke('chat:get-available-models', providerId)
+  setActiveProvider: (providerId) => ipcRenderer.invoke('chat:set-active-provider', providerId),
+  getAvailableModels: (providerId) => ipcRenderer.invoke('chat:get-available-models', providerId)
 }
 
 const fileHandler: FileAPI = {

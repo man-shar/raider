@@ -156,7 +156,7 @@ export class OpenAIProvider extends BaseProvider {
 
   // Prepare messages with appropriate prompts
   async prepareMessages(
-    conversation: ConversationType | null,
+    conversation: ConversationType,
     userInput: string,
     highlightedText: string | null,
     highlightId: string | null,

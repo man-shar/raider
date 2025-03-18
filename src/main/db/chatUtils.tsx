@@ -77,3 +77,24 @@ export function deleteConversationInDb({
     db.close()
   }
 }
+
+export function getConversationFromDb(conversationId: string) {
+  const db = getDb()
+  try {
+    const stmt = db.prepare<[string], { conversation_history: string }>(
+      `SELECT conversation_history FROM files WHERE conversation_id = ?`
+    )
+
+    const result = stmt.get(conversationId)
+
+    if (!result) {
+      throw new Error('Chat history not found')
+    }
+    return JSON.parse(result.conversation_history)
+  } catch (error: any) {
+    console.error('Error getting chat:', error)
+    return { error: error.message }
+  } finally {
+    db.close()
+  }
+}

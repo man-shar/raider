@@ -63,7 +63,7 @@ const Message = forwardRef(
             }
             return null
           })
-          .filter(Boolean)
+          .filter((d) => d !== null)
 
         // Update images state if we found any
         if (images.length > 0) {
@@ -86,6 +86,7 @@ const Message = forwardRef(
 
     useEffect(() => {
       if (message.isLoading && message.terminateString) {
+        console.log('being called', message)
         // Create a task for this message generation
         const taskId = statusManager.addTask({
           type: 'chat_completion',
@@ -128,7 +129,7 @@ const Message = forwardRef(
     }, [])
 
     return (
-      <div className="my-2 space-y-2 bg-gray-100 border border-gray-200 rounded-md relative">
+      <div className="my-2 space-y-2 relative">
         {message.highlightedText && (
           <div className="text-gray-400 border-b border-gray-200 pb-2">
             <div className="text-xs text-gray-500 mb-2">Highlighted text</div>
@@ -193,17 +194,18 @@ const Message = forwardRef(
 )
 
 export function Conversation({ messages }: { messages: MessageWithHighlights[] }) {
+  console.log('Rerender', messages)
   return (
-    <div className="text-sm overflow-hidden *:p-2">
+    <div className="text-sm overflow-hidden *:p-2 divide-y">
       {messages
         .filter((d) => d.role !== 'system')
         .map((message, i) => {
           // If this is the last message and it's an assistant message being streamed
           if (i === messages.length - 2 && message.role === 'assistant') {
-            return <Message key={`${message.id}-${i}`} message={message} />
+            return <Message key={`${message.id}`} message={message} />
           }
 
-          return <Message key={`${message.id}-${i}`} message={message} />
+          return <Message key={`${message.id}`} message={message} />
         })}
     </div>
   )

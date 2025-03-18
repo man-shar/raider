@@ -1,8 +1,11 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 
-type MessageContent =
-  | string
-  | { type: string; text?: string; image_url?: { url: string; detail: string } }[]
+type MultiModalMessage =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail: string } }
+  | { type: 'image'; source: { data: string; media_type: string } }
+
+type MessageContent = string | MultiModalMessage[]
 
 export interface MessageWithHighlights {
   id: string
@@ -38,8 +41,8 @@ export interface ImageData {
   loading: boolean
 }
 
-export interface MessageDetails {
-  conversation: ConversationType | null
+export interface NewMessageDetails {
+  conversationId: string
   userInput: string
   highlightedText: string | null
   highlightId: string | null
@@ -71,7 +74,7 @@ export interface ProviderConfig {
 }
 
 export interface ChatAPI {
-  sendChatMessage: (details: MessageDetails) => Promise<ConversationType | { error: string }>
+  sendChatMessage: (details: NewMessageDetails) => Promise<ConversationType | { error: string }>
   /**
    * Adds a listener for the given `messageId` and calls the `callback`
    * function whenever a chunk of data is received. The callback function

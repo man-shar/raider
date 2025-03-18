@@ -2,6 +2,7 @@ import { ConversationType } from '@types'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useClick } from '@renderer/hooks/useClick'
+import { ChevronDownIcon } from 'lucide-react'
 
 export const ConversationHistory = ({
   conversationHistory = [],
@@ -27,9 +28,9 @@ export const ConversationHistory = ({
   })
 
   return (
-    <div className="history-ctr overflow-auto text-sm text-gray-600 border-b *:transition-all *:duration-400">
+    <div className="history-ctr overflow-auto text-sm text-gray-600 border bg-gray-100 rounded-md *:transition-all *:duration-400">
       <div
-        className="history-label w-full gap-2 cursor-pointer p-2 font-light text-lg sticky top-0"
+        className="history-label w-full gap-2 cursor-pointer p-2 italic text-gray-500 text-md sticky top-0"
         onClick={(e) => {
           // to not conflict with the useclick above. this is fired first, then bubbles up to the body
           // prevent bubbling here
@@ -38,8 +39,13 @@ export const ConversationHistory = ({
           setShow(!show)
         }}
       >
-        {/* {show ? 'Hide' : 'Show'} History */}
         {!activeConversation ? 'New conversation' : activeConversation.messages[1].displayContent}
+        <ChevronDownIcon
+          className={twMerge(
+            'w-4 h-4 absolute right-0 top-1/2 -translate-1/2 text-gray-400 transition-transform',
+            show ? '' : '-rotate-90'
+          )}
+        />
       </div>
       <div
         className={twMerge(

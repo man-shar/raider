@@ -1,7 +1,7 @@
-import { ConversationType, HighlightType, MessageDetails, RaiderFile } from '@types'
+import { ConversationType, HighlightType, NewMessageDetails, RaiderFile } from '@types'
 
 export interface ChatManager {
-  sendChatMessage: (details: MessageDetails) => Promise<ConversationType>
+  sendChatMessage: (details: NewMessageDetails) => Promise<ConversationType>
   setLoading: (value: boolean) => void
   getLoading: () => boolean
   subscribeToLoading: (callback: Listener) => Listener
@@ -70,7 +70,7 @@ export function ChatManager(): ChatManager {
     }
   }
 
-  async function sendChatMessage(details: MessageDetails) {
+  async function sendChatMessage(details: NewMessageDetails) {
     if (loading) {
       throw new Error('Cancel the last chat message to send a new one.')
     }

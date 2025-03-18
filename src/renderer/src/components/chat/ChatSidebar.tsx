@@ -112,7 +112,7 @@ export function ChatSidebar({
           // For now, just log the message
           const newConversation = await chatManager
             .sendChatMessage({
-              conversation: activeConversation,
+              conversationId: activeConversation?.id,
               userInput: val,
               file: fileManager.getFile(),
               highlightedText: activeHighlight?.fullText || null,

@@ -1,14 +1,14 @@
 import {
   AIModel,
   ConversationType,
-  MessageDetails,
+  NewMessageDetails,
   MessageWithHighlights,
   ProviderSettings,
   ProviderType
 } from '@types'
 import { BrowserWindow } from 'electron'
 import { globals } from '../../constants'
-import { addOrUpdateConversationInDb } from '../../db/chatUtils'
+import { addOrUpdateConversationInDb, getConversationFromDb } from '../../db/chatUtils'
 
 export interface ProviderCostConfig {
   [modelId: string]: {
@@ -46,7 +46,7 @@ export interface ProviderInterface {
   getDefaultModel: () => string
 
   // Chat functionality
-  startChatCompletion: (details: MessageDetails) => Promise<ConversationType | { error: string }>
+  startChatCompletion: (details: NewMessageDetails) => Promise<ConversationType | { error: string }>
   createCompletionStream: (messages: any[], model: string) => Promise<CompletionStream>
 
   // Cost calculation
@@ -92,10 +92,9 @@ export abstract class BaseProvider implements ProviderInterface {
   abstract createCompletionStream(messages: any[], model: string): Promise<CompletionStream>
 
   async startChatCompletion(
-    details: MessageDetails
+    details: NewMessageDetails
   ): Promise<ConversationType | { error: string }> {
-    const { conversation, userInput, highlightedText, highlightId, file, fileText, images } =
-      details
+    const { userInput, highlightedText, highlightId, file, fileText, images } = details
 
     try {
       if (!file) throw new Error('File not found')
@@ -105,8 +104,19 @@ export abstract class BaseProvider implements ProviderInterface {
         )
       }
 
+      // get the conversation using the id
+      let conversation: ConversationType | null = null
+      let conversationId: string | null = null
+
+      if (details.conversationId) {
+        conversationId = details.conversationId
+        conversation = await getConversationFromDb(details.conversationId)
+      } else {
+        conversation = null
+        conversationId = crypto.randomUUID()
+      }
+
       // Prepare the conversation
-      const conversationId = conversation?.id || crypto.randomUUID()
       const model = this.settings.selectedModel || this.getDefaultModel()
 
       // Format and prepare messages using provider-specific logic
