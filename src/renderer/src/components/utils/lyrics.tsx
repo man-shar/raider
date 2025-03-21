@@ -149,8 +149,8 @@ export const tracks: Track[] = [
 
 export const LyricDisplay = ({ track = tracks[0] }: { track: Track }) => {
   const idx = useRef(0)
-  const topClass = 'top-0 opacity-100 absolute text-gray-400 h-6'
-  const bottomClass = 'top-10 opacity-0 absolute text-gray-400 h-6'
+  const topClass = 'top-0 opacity-100 absolute text-gray-400 h-6 whitespace-nowrap'
+  const bottomClass = 'top-10 opacity-0 absolute text-gray-400 h-6 whitespace-nowrap'
 
   const a = useRef<HTMLSpanElement>(null)
   const b = useRef<HTMLSpanElement>(null)
@@ -165,17 +165,17 @@ export const LyricDisplay = ({ track = tracks[0] }: { track: Track }) => {
 
       idx.current = (idx.current + 1) % lyrics.length
 
-      if (idx.current % 2 === 0) {
+      if (idx.current % 2 !== 0) {
         a.current.className = topClass
         b.current.className = bottomClass
         // set a's inner text immediately
         a.current.innerText = lyrics[idx.current]
 
-        // set a's later to prevent flash
+        // set b's later to prevent flash
         setTimeout(() => {
           if (!b.current) return
           b.current.innerText = lyrics[(idx.current + 1) % lyrics.length]
-        }, 500)
+        }, 200)
       } else {
         b.current.className = topClass
         a.current.className = bottomClass
@@ -183,11 +183,11 @@ export const LyricDisplay = ({ track = tracks[0] }: { track: Track }) => {
         // set b's inner text immediately
         b.current.innerText = lyrics[idx.current]
 
-        // set b's later to prevent flash
+        // set a's later to prevent flash
         setTimeout(() => {
           if (!a.current) return
           a.current.innerText = lyrics[(idx.current + 1) % lyrics.length]
-        }, 500)
+        }, 200)
       }
 
       interval = setTimeout(interp, 3000)
@@ -202,7 +202,7 @@ export const LyricDisplay = ({ track = tracks[0] }: { track: Track }) => {
 
   return (
     <div className="w-full h-11/12 bg-white flex items-center justify-left p-2">
-      <div className="h-8 relative overflow-hidden">
+      <div className="h-8 w-full relative overflow-hidden">
         <div className="*:transition-all *:duration-500">
           <span ref={a} className={`${topClass} `}>
             {track.lyrics[idx.current]}

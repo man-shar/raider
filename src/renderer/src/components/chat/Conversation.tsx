@@ -198,7 +198,6 @@ const Message = forwardRef(
 )
 
 export function Conversation({ messages }: { messages: MessageWithHighlights[] }) {
-  console.log('Rerender', messages)
   return (
     <div className="text-sm overflow-hidden *:p-2 divide-y">
       {messages

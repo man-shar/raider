@@ -2,6 +2,7 @@ import { Page } from 'react-pdf'
 import { Highlights } from './Highlights'
 import { HighlightType } from '@types'
 import { BUFFER_SIZE } from '../utils/constants'
+import { useEffect } from 'react'
 
 interface PDFPageVirtualizerProps {
   numPages: number
@@ -11,17 +12,27 @@ interface PDFPageVirtualizerProps {
   activePages: number[]
   isInitializing: boolean
   setPageRef: (index: number) => (el: HTMLDivElement | null) => void
+  annos: { [pageNumber: number]: { [id: string]: any } }
+  onAnnoClick: (args: { anno: any; pageNumber: number }) => void
 }
 
 export function PDFPageVirtualizer({
+  annos,
   numPages,
   width,
   highlights,
   onHover,
   activePages,
   isInitializing,
-  setPageRef
+  setPageRef,
+  onAnnoClick
 }: PDFPageVirtualizerProps) {
+  useEffect(() => {
+    Array.from({ length: numPages }).map((_, index) => {
+      annos[index + 1] = {}
+    })
+  }, [])
+
   return (
     <div className="pdf-virtualized-pages">
       {Array.from({ length: numPages }).map((_, index) => {
@@ -38,11 +49,30 @@ export function PDFPageVirtualizer({
           >
             {isActive ? (
               <Page
+                // renderMode="canvas"
                 pageIndex={index}
                 width={width}
                 className="raider-pdf-page"
                 renderTextLayer={true}
                 renderAnnotationLayer={true}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+
+                  if (e.target instanceof HTMLAnchorElement) {
+                    const annoId = e.target.id.split('_').slice(-1)[0]
+                    const anno = annos[index + 1][annoId]
+
+                    if (anno.url) {
+                      window.open(anno.url, '_blank')
+                    }
+                  }
+                }}
+                onGetAnnotationsSuccess={(annotations) => {
+                  annotations.forEach((anno) => {
+                    annos[index + 1][anno.id] = anno
+                  })
+                }}
               >
                 <Highlights
                   onHover={onHover}

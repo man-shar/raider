@@ -14,6 +14,14 @@ PDF Reader + AI
 $ pnpm install
 ```
 
+### Usage
+
+```bash
+$ pnpm dev
+```
+
+Use the teeny settings icon to add your api keys. I've tested this out with openai, but not with the other providers yet!
+
 ### Development
 
 ```bash

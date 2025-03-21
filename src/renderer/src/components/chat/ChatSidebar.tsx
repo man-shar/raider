@@ -16,7 +16,7 @@ import {
 } from '@defogdotai/agents-ui-components/core-ui'
 import { AppContext } from '@renderer/context/AppContext'
 import { Conversation } from './Conversation'
-import { X } from 'lucide-react'
+import { ChevronLeft, ListCollapse, X } from 'lucide-react'
 import { PDFManager } from '../pdf-viewer/PDFManager'
 import { ConversationHistory } from './History'
 import { ConversationType } from '@types'
@@ -190,7 +190,7 @@ export function ChatSidebar({
           {activeConversation ? (
             <Conversation key={activeConversation.id} messages={activeConversation.messages} />
           ) : (
-            <div className="grow flex items-center justify-center text-xs text-gray-400 h-full">
+            <div className="grow flex overflow-visible items-center justify-center text-xs text-gray-400 h-full">
               <LyricDisplay track={tracks[activeTrackIndex]} />
             </div>
           )}

@@ -1,21 +1,12 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore
-} from 'react'
-import { Document, Outline } from 'react-pdf'
+import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Document } from 'react-pdf'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { HighlightType } from '@types'
 import LinkService from 'react-pdf/src/LinkService.js'
 import { ScrollPageIntoViewArgs } from 'react-pdf/src/shared/types.js'
 import { IFrame } from '../utils/Iframe'
-import { Collapse, MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
+import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
-import debounce from 'lodash.debounce'
 import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
 import { createHighlightFromSelection } from '@renderer/utils'
 import { useClick } from '@renderer/hooks/useClick'
@@ -23,6 +14,12 @@ import { AppContext } from '@renderer/context/AppContext'
 import { PDFManager } from './PDFManager'
 import { PDFPageVirtualizer } from './PDFPageVirtualizer'
 import { BUFFER_SIZE } from '../utils/constants'
+import { ToC } from './ToC'
+
+type PDFOutline = Awaited<ReturnType<PDFDocumentProxy['getOutline']>>
+
+// Import custom outline styles
+import '@renderer/assets/pdf-outline.css'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -65,9 +62,12 @@ export function PDFDocument({
 
   const { statusManager } = useContext(AppContext)
 
+  const [outline, setOutline] = useState<PDFOutline | null>(null)
+
   const onDocumentLoadSuccess = useCallback(
     async (pdf: PDFDocumentProxy) => {
       setNumPages(pdf.numPages)
+      setOutline(await pdf.getOutline())
       // Initialize refs
       pageRefs.current = Array.from({ length: pdf.numPages }).map(() => null)
 
@@ -222,16 +222,10 @@ export function PDFDocument({
     }
   }, [chatManager])
 
-  const toggleToc = useCallback(() => {
-    if (!tocRef.current) return
+  const [tocVisible, setTocVisible] = useState(false)
 
-    if (tocRef.current) {
-      if (tocRef.current.classList.contains('hidden')) {
-        tocRef.current.classList.remove('hidden')
-      } else {
-        tocRef.current.classList.add('hidden')
-      }
-    }
+  const toggleToc = useCallback(() => {
+    setTocVisible((prev) => !prev)
   }, [])
 
   // Using width directly from props
@@ -379,7 +373,6 @@ export function PDFDocument({
 
     // Add event listeners
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
-    window.addEventListener('resize', handleScroll, { passive: true })
 
     // Initialize active pages
     // Start with first few pages active
@@ -394,13 +387,39 @@ export function PDFDocument({
 
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('resize', handleScroll)
       clearTimeout(initTimer)
     }
   }, [ctrRef, numPages, updateActivePages])
 
+  const { current: annos } = useRef<{ [pageNumber: number]: { [id: string]: any } }>({})
+
   return (
-    <div ref={ctrRef} className="w-full">
+    <div ref={ctrRef} className="w-full relative">
+      {outline && (
+        <button
+          className="sticky top-[50vh] left-[20px] z-3 h-0"
+          onClick={toggleToc}
+          title="Toggle Table of Contents (⌘T)"
+        >
+          <div className="h-fit space-y-2 rounded-md p-2 shadow border cursor-pointer gap-2 bg-white hover:bg-gray-100 group">
+            <div className="w-2 h-2 border-b border-gray-500"></div>
+            <div className="w-2 h-2 border-b border-gray-500"></div>
+            <div className="w-2 h-2 border-b border-gray-500"></div>
+            <div className="w-2 h-2 border-b border-gray-500"></div>
+            <div className="w-2 h-2 border-b border-gray-500"></div>
+            <div className="w-2 h-2 border-b border-gray-500"></div>
+          </div>
+        </button>
+      )}
+
+      {outline && documentRef?.current?.linkService?.current && (
+        <ToC
+          outline={outline}
+          linkService={documentRef.current.linkService.current}
+          hidden={!tocVisible}
+        />
+      )}
+
       <IFrame
         ref={iframeRef}
         className="w-60 shadow-md h-20 p-2 rounded-md bg-white border text-xs"
@@ -425,14 +444,8 @@ export function PDFDocument({
           onLoadSuccess={onDocumentLoadSuccess}
           options={options.current}
           className="relative pdf-document"
-          onClick={(e) => {
-            // if this is a link, open in browser
-            if (e.target instanceof HTMLAnchorElement) {
-              e.preventDefault()
-              window.open(e.target.href, '_blank')
-            }
-          }}
-          onItemClick={async ({ pageNumber }) => {
+          onItemClick={async ({ dest, pageNumber }) => {
+            console.log({ dest, pageNumber })
             // scroll document to the page ref
             const pageRef = pageRefs.current[pageNumber - 1]
             if (pageRef) {
@@ -445,6 +458,7 @@ export function PDFDocument({
         >
           {numPages && (
             <PDFPageVirtualizer
+              annos={annos}
               numPages={numPages}
               width={width}
               highlights={file.highlights}
@@ -454,21 +468,6 @@ export function PDFDocument({
               setPageRef={setPageRef}
             />
           )}
-          <div
-            className="hidden fixed max-h-96 overflow-auto top-20 left-1/12 mx-auto z-10 px-4 py-2 bg-gray-600 text-gray-200 border border-gray-200 shadow rounded-md text-xs w-10/12"
-            ref={tocRef}
-          >
-            <h1 className="text-gray-200">Table of Contents</h1>
-            <Outline
-              className=""
-              onItemClick={({ dest }) => {
-                if (!dest) return
-
-                documentRef.current?.linkService.current.goToDestination(dest)
-                toggleToc()
-              }}
-            ></Outline>
-          </div>
 
           <div className="relative"></div>
         </Document>
