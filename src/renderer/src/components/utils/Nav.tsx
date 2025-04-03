@@ -9,13 +9,11 @@ export function Nav({
   selectedFilePath,
   fileManagers,
   setSelectedFilePath,
-  addFileClick,
   closeFile
 }: {
   selectedFilePath: string | null
   fileManagers: PDFManager[]
-  setSelectedFilePath: (filePath: string) => void
-  addFileClick: () => void
+  setSelectedFilePath: (filePath: string | null) => void
   closeFile: (file: RaiderFile, idx: number) => void
 }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -52,12 +50,20 @@ export function Nav({
         })}
         {fileManagers.length !== 0 && (
           <button
-            className={'group p-2 text-xs flex flex-row items-center cursor-pointer'}
+            className={twMerge(
+              'group p-2 text-xs flex flex-row items-center cursor-pointer',
+              !selectedFilePath ? 'bg-gray-200 border-t-2 border-t-blue-400' : ''
+            )}
             onClick={() => {
-              addFileClick()
+              setSelectedFilePath(null)
             }}
           >
-            <Plus className="w-3 inline group-hover:stroke-3" />
+            <Plus
+              className={twMerge(
+                'w-3 inline group-hover:stroke-3',
+                !selectedFilePath ? 'stroke-3' : ''
+              )}
+            />
           </button>
         )}
 

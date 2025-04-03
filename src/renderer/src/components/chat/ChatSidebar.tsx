@@ -34,13 +34,7 @@ interface PastedImageMap {
   [id: string]: PastedImage
 }
 
-export function ChatSidebar({
-  fileText,
-  fileManager
-}: {
-  fileText: string | null
-  fileManager: PDFManager
-}) {
+export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
   const { chatManager } = useContext(AppContext)
   const message = useContext(MessageManagerContext)
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
@@ -102,10 +96,6 @@ export function ChatSidebar({
         try {
           if (!fileManager) throw new Error('File manager not found')
 
-          if (fileText === null) {
-            message.warning('File text not extracted yet. Still sending message.')
-          }
-
           // Convert images to an array format for sending to AI
           const imageArray = Object.values(images).filter((img) => !img.loading && img.base64) // Only include images that have finished loading
 
@@ -117,7 +107,7 @@ export function ChatSidebar({
               file: fileManager.getFile(),
               highlightedText: activeHighlight?.fullText || null,
               highlightId: activeHighlight?.id || null,
-              fileText: fileText,
+              highlightedPageNumber: activeHighlight?.pageNumber || null,
               images: imageArray.length > 0 ? imageArray : undefined
             })
             .catch((error) => {
@@ -146,7 +136,7 @@ export function ChatSidebar({
         }
       }
     },
-    [fileManager, fileText, activeHighlight, message, chatManager, activeConversation, images]
+    [fileManager, activeHighlight, message, chatManager, activeConversation, images]
   )
 
   useKeyDown({

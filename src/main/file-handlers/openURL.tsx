@@ -1,7 +1,7 @@
 import { RaiderFile } from '@types'
 import { parseUrl } from '../utils'
 import { IpcMainInvokeEvent } from 'electron'
-import { createOrGetFileFromDb } from '../db/fileUtils'
+import { createOrGetFileFromDb, insertFileDataInDb } from '../db/fileUtils'
 
 /**
  * Reads a file from a URL.
@@ -10,6 +10,15 @@ export async function readFileFromUrl(url: string): Promise<RaiderFile> {
   const parsedUrl = parseUrl(url)
   const filePath = parsedUrl
   const name = parsedUrl.split('/').pop() || parsedUrl
+
+  // download the file and return it
+  const res = await fetch(parsedUrl, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/pdf'
+    }
+  })
+  const buf = new Uint8Array(await res.arrayBuffer())
 
   // try to create a file in the db
   const { error, file } = createOrGetFileFromDb({
@@ -20,20 +29,18 @@ export async function readFileFromUrl(url: string): Promise<RaiderFile> {
 
   if (error || !file) throw new Error(error || 'Could not open file')
 
-  // download the file and return it
-  const res = await fetch(parsedUrl, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/pdf'
-    }
+  insertFileDataInDb({
+    path: filePath,
+    is_url: 1,
+    name,
+    buf: buf
   })
-  const buf = await res.arrayBuffer()
 
-  return { ...file, buf: { data: Array.from(new Uint8Array(buf)) }, type: 'pdf' }
+  return file
 }
 
 /**
- * Opens Electron's file selection dialog and returns the list of selected files.
+ *
  */
 export async function openURL(
   _event: IpcMainInvokeEvent,

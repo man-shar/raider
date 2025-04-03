@@ -46,8 +46,8 @@ export interface NewMessageDetails {
   userInput: string
   highlightedText: string | null
   highlightId: string | null
+  highlightedPageNumber: number | null
   file: RaiderFile | null
-  fileText: string | null
   providerId?: ProviderType
   images?: ImageData[] // Array of base64 encoded images
 }
@@ -125,7 +125,18 @@ export interface HighlightType {
   }[]
 }
 
-export type FileDetails = { fullText: string; pageWiseText: { [pageNumber: number]: string } }
+export type FileDetails = {
+  fullText: string
+  pageWiseText: {
+    [pageNumber: number]: string
+  }
+  fileTokenLength: number
+}
+
+export interface RaiderFileDataDbRow {
+  // BLOB type
+  buf?: any
+}
 
 export interface RaiderFile {
   path: string
@@ -133,9 +144,9 @@ export interface RaiderFile {
   name: string
   highlights: HighlightType[]
   conversation_history: ConversationType[]
-  buf?: { data: Array<number> }
   type?: string
   details: FileDetails
+  buf?: Uint8Array
 }
 
 export interface RaiderFileDbRow {
@@ -150,6 +161,11 @@ export interface RaiderFileDbRow {
 export interface FileAPI {
   selectFile: () => Promise<{ files?: RaiderFile[]; error?: string }>
   openURL: (url: string) => Promise<{ file?: RaiderFile; error?: string }>
+  getFileData: (
+    path: string,
+    is_url: number,
+    name: string
+  ) => Promise<{ error?: string; buf?: Uint8Array }>
   removeConversation: (
     path: string,
     is_url: number,
@@ -166,8 +182,8 @@ export interface FileAPI {
     path: string,
     is_url: number,
     name: string,
-    details: FileDetails
-  ) => Promise<{ error?: string }>
+    details: Partial<FileDetails>
+  ) => Promise<{ error?: string; updatedDetails: FileDetails }>
 }
 
 declare global {

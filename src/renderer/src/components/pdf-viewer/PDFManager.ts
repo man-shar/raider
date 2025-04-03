@@ -13,12 +13,54 @@ export interface PDFManager {
   removeHighlight: (highlight: HighlightType) => Promise<void>
 }
 
-export function PDFManager(f: RaiderFile): PDFManager {
+export function PDFManager(initialState: RaiderFile): PDFManager {
   let listeners: Listener[] = []
 
-  let file = f
+  // @ts-ignore
+  let file: RaiderFile = initialState
+  let ready: boolean = false
+  let errored: string | boolean = false
+
+  // init and fetch this file
+  async function init() {
+    try {
+      console.time('Getting file data')
+      const { error, buf } = await window.fileHandler.getFileData(
+        initialState.path,
+        initialState.is_url,
+        initialState.name
+      )
+
+      console.timeEnd('Getting file data')
+      if (error) {
+        ready = false
+        errored = error
+      } else {
+        ready = true
+        errored = false
+
+        updateFile({
+          ...file,
+          buf: buf
+        })
+      }
+    } catch (e) {
+      console.error(e)
+      ready = false
+      errored = e.message
+    }
+  }
+
+  function checkReady() {
+    if (!ready && !errored) {
+      throw new Error('PDF Managet still fetching')
+    } else if (!ready && errored) {
+      throw new Error('PDF Manager could not fetch file data')
+    }
+  }
 
   function updateFile(newFileOrUpdater: RaiderFile | Updater): void {
+    checkReady()
     if (typeof newFileOrUpdater === 'function') {
       file = newFileOrUpdater(file)
     } else {
@@ -45,6 +87,8 @@ export function PDFManager(f: RaiderFile): PDFManager {
   }
 
   async function addOrUpdateHighlight(highlight: HighlightType) {
+    checkReady()
+
     if (!highlight) return
 
     const idx = file.highlights.findIndex((h) => h.id === highlight.id)
@@ -72,6 +116,8 @@ export function PDFManager(f: RaiderFile): PDFManager {
   }
 
   async function removeHighlight(highlight: HighlightType) {
+    checkReady()
+
     const { error, newHighlights } = await window.fileHandler.updateHighlights(file.path, [
       ...file.highlights.filter((h) => h.id !== highlight.id)
     ])
@@ -87,6 +133,8 @@ export function PDFManager(f: RaiderFile): PDFManager {
   }
 
   async function addOrUpdateConversationInHistory(conversation: ConversationType) {
+    checkReady()
+
     const idx = file.conversation_history.findIndex((c) => c.id === conversation.id)
 
     const newConversations = [...file.conversation_history]
@@ -106,6 +154,8 @@ export function PDFManager(f: RaiderFile): PDFManager {
   }
 
   async function removeConversationFromHistory(conversation: ConversationType) {
+    checkReady()
+
     const idx = file.conversation_history.findIndex((c) => c.id === conversation.id)
     console.log('here!!1', idx)
 
@@ -131,6 +181,8 @@ export function PDFManager(f: RaiderFile): PDFManager {
       conversation_history: newConversations
     })
   }
+
+  init()
 
   return {
     get filePath() {

@@ -16,6 +16,7 @@ import { updateFileDetails } from '../file-handlers/updateFileDetails'
 import { createSqlTables } from './setupSQLTables'
 import { providerRegistry } from '../chat-handlers/providers/ProviderRegistry'
 import { removeConversation } from '../file-handlers/conversation'
+import { getFileData } from '../file-handlers/getFileData'
 
 export function setupHandlers() {
   // Create database tables if they don't exist
@@ -42,4 +43,5 @@ export function setupHandlers() {
   ipcMain.handle('file:get-last-opened-files', getOpenFiles)
   ipcMain.handle('file:update-details', updateFileDetails)
   ipcMain.handle('file:delete-conversation', removeConversation)
+  ipcMain.handle('file:get-file-data', getFileData)
 }

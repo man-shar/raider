@@ -4,7 +4,11 @@
   "compilerOptions": {
     "useUnknownInCatchVariables": false,
     "baseUrl": ".",
+    "strictNullChecks": false,
     "moduleResolution": "Bundler",
+    "noUnusedParameters": false,
+    "experimentalDecorators": true,
+    "noUnusedLocals": false,
     "paths": {
       "@types": [
 "src/types.ts"

@@ -25,12 +25,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString()
 
-function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
-  const [fileManagers, setFileManagers] = useState<PDFManager[]>(
-    (initialFiles || []).map((file) => PDFManager(file))
-  )
+function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
+  const [fileManagers, setFileManagers] = useState<PDFManager[]>(initialFileManagers)
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(
-    initialFiles.length ? initialFiles[0].path : null
+    fileManagers.length ? fileManagers[0].filePath : null
   )
   // Track PDF container width
   const [contentWidth, setContentWidth] = useState<number>(800)
@@ -50,18 +48,6 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
       setSelectedFilePath(fileManagers[0].getFile().path)
     }
   }, [fileManagers])
-
-  const [fileTexts, setFileTexts] = useState<{
-    [path: string]: { fullText: string | null; pageWiseText: { [page: number]: string } }
-  }>(
-    initialFiles.reduce((acc, file) => {
-      acc[file.path] = {
-        fullText: file.details.fullText || null,
-        pageWiseText: file.details.pageWiseText || null
-      }
-      return acc
-    }, {})
-  )
 
   const message = useRef(MessageManager())
 
@@ -145,10 +131,7 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
               >
                 <div className="w-96 h-full">
                   {selectedFilePath && selectedFileManager && (
-                    <ChatSidebar
-                      fileManager={selectedFileManager}
-                      fileText={fileTexts?.[selectedFilePath]?.fullText || null}
-                    />
+                    <ChatSidebar fileManager={selectedFileManager} />
                   )}
                 </div>
               </div>
@@ -158,7 +141,6 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
                 selectedFilePath={selectedFilePath}
                 fileManagers={fileManagers}
                 setSelectedFilePath={setSelectedFilePath}
-                addFileClick={handleSelectFile.current}
                 closeFile={async (file, idx) => {
                   // try closing file in the db first
                   const { error } = await window.fileHandler.closeFile(file.path)
@@ -199,23 +181,23 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
                         pdfManager={mgr}
                         width={contentWidth}
                         onTextExtracted={async (fullText, pageWiseText) => {
-                          await window.fileHandler.updateFileDetails(
-                            file.path,
-                            file.is_url,
-                            file.name,
-                            {
-                              fullText,
-                              pageWiseText
-                            }
-                          )
+                          try {
+                            const { error, updatedDetails } =
+                              await window.fileHandler.updateFileDetails(
+                                file.path,
+                                file.is_url,
+                                file.name,
+                                {
+                                  fullText,
+                                  pageWiseText
+                                }
+                              )
 
-                          setFileTexts((d) => ({
-                            ...d,
-                            [file.path]: {
-                              fullText,
-                              pageWiseText
-                            }
-                          }))
+                            if (error) throw new Error(error)
+                          } catch (e) {
+                            console.error(e)
+                            message.current.error(e)
+                          }
                         }}
                       />
                     </div>

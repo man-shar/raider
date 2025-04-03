@@ -1,4 +1,10 @@
-import { HighlightType, RaiderFile, RaiderFileDbRow } from '@types'
+import {
+  FileDetails,
+  HighlightType,
+  RaiderFile,
+  RaiderFileDataDbRow,
+  RaiderFileDbRow
+} from '@types'
 import { getDb } from '../utils'
 import { readFileFromPath } from '../file-handlers/selectFile'
 import { readFileFromUrl } from '../file-handlers/openURL'
@@ -25,15 +31,15 @@ export function updateFileDetailsInDb({
   path: string
   is_url: number
   name: string
-  details: { [key: string]: any }
-}): { error?: string } {
+  details: FileDetails
+}): { error?: string; updatedDetails?: FileDetails } {
   const db = getDb()
   try {
     const updateStmt = db.prepare(
       `UPDATE files SET details = ? WHERE path = ? AND is_url = ? AND name = ?`
     )
     updateStmt.run(JSON.stringify(details), path, is_url, name)
-    return {}
+    return { updatedDetails: details }
   } catch (error: any) {
     console.error('Error updating file details:', error)
     return { error: error.message }
@@ -42,7 +48,8 @@ export function updateFileDetailsInDb({
   }
 }
 
-/** Inserts a row in the files table with the given file.
+/**
+ * Inserts a row in the files table with the given file.
  * If file already exists, returns the details of the file.
  */
 export function createOrGetFileFromDb({
@@ -71,9 +78,10 @@ export function createOrGetFileFromDb({
       return { file: parseFileRowToRaiderFile(file) }
     }
 
-    const insertStmt = db.prepare(
+    const insertStmt = db.prepare<[string, number, string], null>(
       `INSERT OR IGNORE INTO files (path, is_url, name) VALUES (?, ?, ?)`
     )
+
     insertStmt.run(path, is_url, name)
 
     // get the inserted row
@@ -162,36 +170,94 @@ export function closeFileInDb(path: string): { error?: string } {
 /**
  * Get the last opened files
  */
-export async function getOpenFilesFromDb(): Promise<{ error?: string; files?: RaiderFile[] }> {
+export async function getOpenFilesFromDb(): Promise<{
+  error?: string
+  files?: RaiderFile[]
+}> {
   const db = getDb()
   try {
-    const openedFiles = db
-      .prepare<[], { path: string; is_url: number }>(`SELECT path, is_url FROM open_files`)
+    const rows = db
+      .prepare<[], RaiderFileDbRow>(
+        `
+        SELECT f.* 
+        FROM files f
+        JOIN open_files of ON f.path = of.path AND f.is_url = of.is_url
+      `
+      )
       .all()
-    // get information of all these files from the files table
-    let files: RaiderFile[] = []
 
-    for (const openedFile of openedFiles) {
-      const isUrl = openedFile.is_url === 1
+    const parsedFiles = rows.map((file) => parseFileRowToRaiderFile(file))
 
-      try {
-        const file = isUrl
-          ? await readFileFromUrl(openedFile.path)
-          : await readFileFromPath(openedFile.path)
-
-        files.push(file)
-      } catch (error: any) {
-        console.error('Error reading file:', error)
-        // remove this file from the open files table
-        closeFileInDb(openedFile.path)
-      }
-    }
-
-    return { files }
+    return { files: parsedFiles }
   } catch (error: any) {
     console.error('Error getting last opened files:', error)
     return { error: error.message }
   } finally {
+    db.close()
+  }
+}
+
+export async function insertFileDataInDb({
+  path,
+  name,
+  is_url,
+  buf
+}: {
+  path: string
+  name: string
+  is_url: number
+  buf: Uint8Array
+}): Promise<{ error?: string }> {
+  const db = getDb()
+
+  try {
+    const insertStmt = db.prepare<[string, number, string, Buffer], null>(
+      `INSERT OR IGNORE INTO file_data (path, is_url, name, buf) VALUES (?, ?, ?, ?)`
+    )
+
+    insertStmt.run(path, is_url, name, Buffer.from(buf))
+
+    return {}
+  } catch (error) {
+    console.error('Error inserting file data', error)
+    return { error: error.message }
+  } finally {
+    db.close()
+  }
+}
+
+export async function getFileDataFromDb({
+  path,
+  name,
+  is_url
+}: {
+  path: string
+  name: string
+  is_url: number
+}): Promise<{ error?: string; buf?: Uint8Array }> {
+  const db = getDb()
+
+  try {
+    console.time('Get file data from db')
+    const exists = db
+      .prepare<
+        [string, number, string],
+        RaiderFileDataDbRow
+      >(`SELECT * FROM file_data WHERE path = ? AND is_url = ? AND name = ?`)
+      .get(path, is_url, name)
+
+    if (!exists) {
+      throw new Error('File not found')
+    }
+    console.timeEnd('Get file data from db')
+
+    console.time('Parse file data')
+    return { buf: new Uint8Array(exists.buf) }
+  } catch (error) {
+    console.error('Error getting file data', error)
+    return { error: error.message }
+  } finally {
+    console.timeEnd('Parse file data')
     db.close()
   }
 }

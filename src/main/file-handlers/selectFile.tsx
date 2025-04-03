@@ -1,7 +1,7 @@
 import { RaiderFile } from '@types'
 import { dialog, IpcMainInvokeEvent } from 'electron'
 import { readFileSync } from 'fs'
-import { createOrGetFileFromDb } from '../db/fileUtils'
+import { createOrGetFileFromDb, insertFileDataInDb } from '../db/fileUtils'
 
 /**
  * Reads a file from a path
@@ -20,11 +20,14 @@ export async function readFileFromPath(filePath: string): Promise<RaiderFile> {
 
   const buf = readFileSync(filePath)
 
-  return {
-    ...file,
-    buf: { data: Array.from(new Uint8Array(buf)) },
-    type: 'pdf'
-  }
+  insertFileDataInDb({
+    path: filePath,
+    is_url: 0,
+    name,
+    buf: new Uint8Array(buf)
+  })
+
+  return file
 }
 
 /**

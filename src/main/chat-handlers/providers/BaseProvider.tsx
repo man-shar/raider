@@ -108,7 +108,11 @@ export abstract class BaseProvider implements ProviderInterface {
   async startChatCompletion(
     details: NewMessageDetails
   ): Promise<ConversationType | { error: string }> {
-    const { userInput, highlightedText, highlightId, file, fileText, images } = details
+    const { userInput, highlightedText, highlightId, highlightedPageNumber, file, images } = details
+
+    const fileText = file?.details?.fullText
+    const pageWiseText = file?.details?.pageWiseText
+    const fileTokenLength = file?.details.fileTokenLength
 
     try {
       if (!file) throw new Error('File not found')
@@ -147,14 +151,17 @@ export abstract class BaseProvider implements ProviderInterface {
       const model = this.settings.selectedModel || this.getDefaultModel()
 
       // Format and prepare messages using provider-specific logic
-      const { initialMessages, newMsgId, terminateString } = await this.prepareMessages(
+      const { initialMessages, newMsgId, terminateString } = await this.prepareMessages({
         conversation,
         userInput,
         highlightedText,
         highlightId,
+        highlightedPageNumber,
         fileText,
+        fileTokenLength,
+        pageWiseText,
         images
-      )
+      })
 
       console.log(
         'Message roles:',
@@ -381,14 +388,17 @@ export abstract class BaseProvider implements ProviderInterface {
   }
 
   // Helper method to prepare messages for the API
-  protected abstract prepareMessages(
-    conversation: ConversationType | null,
-    userInput: string,
-    highlightedText: string | null,
-    highlightId: string | null,
-    fileText: string | null,
-    images?: { id: string; base64: string; loading: boolean }[]
-  ): Promise<{
+  protected abstract prepareMessages(opts: {
+    conversation: ConversationType | null
+    userInput: string
+    highlightedText: string | null
+    highlightId: string | null
+    highlightedPageNumber: number | null
+    fileText: string | null
+    fileTokenLength: number
+    pageWiseText: { [pageNumber: number]: string }
+    images: { id: string; base64: string; loading: boolean }[]
+  }): Promise<{
     initialMessages: MessageWithHighlights[]
     newMsgId: string
     terminateString: string

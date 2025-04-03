@@ -1,4 +1,12 @@
-import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from 'react'
 import { Document } from 'react-pdf'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { HighlightType } from '@types'
@@ -69,6 +77,7 @@ export function PDFDocument({
       setOutline(await pdf.getOutline())
       // Initialize refs
       pageRefs.current = Array.from({ length: pdf.numPages }).map(() => null)
+      const file = pdfManager.getFile()
 
       if (!file.details.fullText) {
         const start = performance.now()
@@ -127,7 +136,7 @@ export function PDFDocument({
         console.log(`Full text for file: ${file.path} already extracted`)
       }
     },
-    [file, statusManager]
+    [statusManager]
   )
 
   const ctrRef = useRef<HTMLDivElement | null>(null)
@@ -245,7 +254,7 @@ export function PDFDocument({
         iframeRef.current.style.opacity = '0'
       }
     }
-  }, [ctrRef, file])
+  }, [ctrRef])
 
   const highlightHovered = useRef<HighlightType | null>(null)
 
@@ -253,33 +262,30 @@ export function PDFDocument({
   useKeyDown({ key: 'H', meta: true, callback: createNewHighlight })
   useKeyDown({ key: 'Enter', meta: true, callback: handleAddHighlightToChatBox })
 
-  useKeyDown(
-    {
-      meta: true,
-      key: 'r',
-      callback: async () => {
-        if (highlightHovered.current && highlightHovered.current.id) {
-          try {
-            pdfManager.removeHighlight(highlightHovered.current)
-          } catch (error) {
-            console.error(error || 'Could not delete highlight!')
-            message.error(error || 'Could not delete highlight!')
-          }
+  useKeyDown({
+    meta: true,
+    key: 'r',
+    callback: async () => {
+      if (highlightHovered.current && highlightHovered.current.id) {
+        try {
+          pdfManager.removeHighlight(highlightHovered.current)
+        } catch (error) {
+          console.error(error || 'Could not delete highlight!')
+          message.error(error || 'Could not delete highlight!')
         }
       }
-    },
-    [file]
-  )
+    }
+  })
 
   useEffect(() => {
-    if (!ctrRef.current) return
+    if (!ctrRef.current) return () => {}
 
     document.addEventListener('selectionchange', handleSelectionChange)
 
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange)
     }
-  }, [createNewHighlight, handleSelectionChange])
+  }, [handleSelectionChange])
 
   // Track which pages should have active content
   const [activePages, setActivePages] = useState<number[]>([])
@@ -331,11 +337,11 @@ export function PDFDocument({
 
   // Initialize scrolling and page visibility detection
   useEffect(() => {
-    if (!ctrRef.current || !numPages) return
+    if (!ctrRef.current || !numPages) return () => {}
 
     // Find scroll container
     const scrollContainer = ctrRef.current.closest('.view-ctr') as HTMLElement
-    if (!scrollContainer) return
+    if (!scrollContainer) return () => {}
 
     scrollContainerRef.current = scrollContainer
 
@@ -373,6 +379,11 @@ export function PDFDocument({
 
   const { current: annos } = useRef<{ [pageNumber: number]: { [id: string]: any } }>({})
 
+  const fileBuf = useMemo(() => {
+    if (!file.buf) return null
+    return { data: new Uint8Array(file.buf) }
+  }, [file.buf])
+
   return (
     <div ref={ctrRef} className="w-full relative">
       {outline && (
@@ -394,6 +405,7 @@ export function PDFDocument({
 
       {outline && documentRef?.current?.linkService?.current && (
         <ToC
+          // @ts-ignore
           outline={outline}
           linkService={documentRef.current.linkService.current}
           hidden={!tocVisible}
@@ -417,15 +429,14 @@ export function PDFDocument({
         </div>
       </IFrame>
 
-      {ctrRef && (
+      {ctrRef && fileBuf && (
         <Document
           ref={documentRef}
-          file={file.buf}
+          file={fileBuf}
           onLoadSuccess={onDocumentLoadSuccess}
           options={options.current}
           className="relative pdf-document"
           onItemClick={async ({ dest, pageNumber }) => {
-            console.log({ dest, pageNumber })
             // scroll document to the page ref
             const pageRef = pageRefs.current[pageNumber - 1]
             if (pageRef) {

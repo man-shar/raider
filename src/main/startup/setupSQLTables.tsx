@@ -11,16 +11,30 @@ export function createSqlTables() {
   // a json column that stores chat history for this particular file
   console.log('Creating files table')
   // first drop the table if it exists
-  // db.prepare(
-  //   `
-  //   DROP TABLE IF EXISTS files;
-  // `
-  // ).run()
-  // db.prepare(
-  //   `
-  //   DROP TABLE IF EXISTS open_files;
-  // `
-  // ).run()
+  db.prepare(
+    `
+    DROP TABLE IF EXISTS files;
+  `
+  ).run()
+  db.prepare(
+    `
+    DROP TABLE IF EXISTS open_files;
+  `
+  ).run()
+  db.prepare(
+    `
+    DROP TABLE IF EXISTS file_data;
+  `
+  ).run()
+
+  const fileDataTable = db.prepare(`
+    CREATE TABLE IF NOT EXISTS file_data (
+      path TEXT NOT NULL,
+      is_url BOOLEAN NOT NULL,
+      name TEXT NOT NULL,
+      buf BLOB NOT NULL
+    )
+  `)
 
   const filesTable = db.prepare(`
     CREATE TABLE IF NOT EXISTS files (
@@ -58,6 +72,7 @@ export function createSqlTables() {
     );
   `)
 
+  fileDataTable.run()
   filesTable.run()
   openFilesTable.run()
   providersTable.run()

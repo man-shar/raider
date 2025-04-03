@@ -1,10 +1,17 @@
 import { AIModel, ConversationType, MessageWithHighlights, ProviderType } from '@types'
 import OpenAI from 'openai'
 import { BaseProvider, CompletionStream, ProviderCostConfig } from './BaseProvider'
-import systemPromptWithHighlight from '../prompts/sys-with-highlight.txt?raw'
 import userPromptWithHighlight from '../prompts/user-with-highlight.txt?raw'
-import systemPromptWithoutHighlight from '../prompts/sys-without-highlight.txt?raw'
 import userPromptWithoutHighlight from '../prompts/user-without-highlight.txt?raw'
+
+// system prompts with/without highlight when the full file text fits
+import systemPromptWithHighlightWithFullText from '../prompts/sys-with-highlight-with-full-text.txt?raw'
+import systemPromptWithoutHighlightWithFullText from '../prompts/sys-without-highlight-with-full-text.txt?raw'
+
+// system prompts with/without highlight when the full file text doesn't fit
+import systemPromptWithHighlightWithoutFullText from '../prompts/sys-with-highlight-without-full-text.txt?raw'
+import systemPromptWithoutHighlightWithoutFullText from '../prompts/sys-without-highlight-without-full-text.txt?raw'
+
 import basicSystemPrompt from '../prompts/basic-sys.txt?raw'
 import basicUserPrompt from '../prompts/basic-user.txt?raw'
 
@@ -155,14 +162,27 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   // Prepare messages with appropriate prompts
-  async prepareMessages(
-    conversation: ConversationType,
-    userInput: string,
-    highlightedText: string | null,
-    highlightId: string | null,
-    fileText: string | null,
+  async prepareMessages({
+    conversation,
+    userInput,
+    highlightedText,
+    highlightId,
+    highlightedPageNumber,
+    fileText,
+    pageWiseText,
+    fileTokenLength,
+    images
+  }: {
+    conversation: ConversationType
+    userInput: string
+    highlightedText: string | null
+    highlightId: string | null
+    highlightedPageNumber: number | null
+    fileText: string | null
+    pageWiseText: { [pageNumber: number]: string } | null
+    fileTokenLength: number
     images?: { id: string; base64: string; loading: boolean }[]
-  ): Promise<{
+  }): Promise<{
     initialMessages: MessageWithHighlights[]
     newMsgId: string
     terminateString: string
@@ -170,15 +190,88 @@ export class OpenAIProvider extends BaseProvider {
     // Determine which prompts to use based on context
     let sysPrompt: string
     let userPrompt: string
+    let first10PagesText: string
+    let highlightPageText: string
+    let beforeHighlight: string
+    let afterHighlight: string
+    first10PagesText =
+      pageWiseText &&
+      Array.from({ length: 10 })
+        .map((d, idx) => pageWiseText[idx + 1])
+        .join('\n')
+
+    highlightPageText = highlightedPageNumber && pageWiseText[highlightedPageNumber]
+
+    beforeHighlight =
+      highlightedPageNumber &&
+      Array.from({ length: 5 })
+        .map((d, idx) => {
+          const targetPageNum = highlightedPageNumber - idx - 1
+          if (targetPageNum > 1) {
+            return pageWiseText[targetPageNum]
+          } else {
+            return null
+          }
+        })
+        .filter(Boolean)
+        .join('\n')
+
+    afterHighlight =
+      highlightedPageNumber &&
+      Array.from({ length: 5 })
+        .map((d, idx) => {
+          const targetPageNum = highlightedPageNumber + idx + 1
+          if (pageWiseText[targetPageNum]) {
+            return pageWiseText[targetPageNum]
+          } else {
+            return null
+          }
+        })
+        .filter(Boolean)
+        .join('\n')
+
+    // if file text is > 50k tokens, we will switch to using:
+    // first 10 pages of the file
+    // 5 pages before highlight
+    // highlight page
+    // 5 pages after highlight
+
+    const isTooBig = fileTokenLength >= 50_000
+
+    if (isTooBig) {
+      console.log('File text is too big. We will send some chunks instead.')
+    } else {
+      console.log(
+        `File text is within limit of 50000 (file is ${fileTokenLength}). We will send the full file.`
+      )
+    }
 
     if (highlightedText && fileText) {
-      sysPrompt = systemPromptWithHighlight.replaceAll('{fileText}', fileText)
+      if (!isTooBig) {
+        sysPrompt = systemPromptWithHighlightWithFullText.replaceAll('{fileText}', fileText)
+      } else {
+        sysPrompt = systemPromptWithHighlightWithoutFullText
+          .replace('{fileTextFirst10Pages}', first10PagesText)
+          .replace('{beforeHighlight}', beforeHighlight)
+          .replace('{afterHighlight}', afterHighlight)
+          .replace('{highlightPageText}', highlightPageText)
+      }
+
       userPrompt = userPromptWithHighlight
         .replaceAll('{userInput}', userInput)
         .replaceAll('{highlightedText}', highlightedText)
         .trim()
     } else if (fileText && !highlightedText) {
-      sysPrompt = systemPromptWithoutHighlight.replaceAll('{fileText}', fileText)
+      if (!isTooBig) {
+        sysPrompt = systemPromptWithoutHighlightWithFullText.replaceAll('{fileText}', fileText)
+      } else {
+        sysPrompt = systemPromptWithoutHighlightWithoutFullText
+          .replace('{fileTextFirst10Pages}', first10PagesText)
+          .replace('{beforeHighlight}', beforeHighlight)
+          .replace('{afterHighlight}', afterHighlight)
+          .replace('{highlightPageText}', highlightPageText)
+      }
+
       userPrompt = userPromptWithoutHighlight.replaceAll('{userInput}', userInput).trim()
     } else {
       sysPrompt = basicSystemPrompt
@@ -206,6 +299,7 @@ export class OpenAIProvider extends BaseProvider {
         content: [
           { type: 'text', text: userPrompt.trim() },
           // Add images as additional content items
+          // @ts-ignore
           ...images.map((img) => ({
             type: 'image_url',
             image_url: {
