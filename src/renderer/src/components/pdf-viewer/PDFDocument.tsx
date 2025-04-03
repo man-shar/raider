@@ -9,7 +9,6 @@ import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
 import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
 import { createHighlightFromSelection } from '@renderer/utils'
-import { useClick } from '@renderer/hooks/useClick'
 import { AppContext } from '@renderer/context/AppContext'
 import { PDFManager } from './PDFManager'
 import { PDFPageVirtualizer } from './PDFPageVirtualizer'
@@ -135,7 +134,6 @@ export function PDFDocument({
   const tooltipRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const documentRef = useRef<DocumentRef>(null)
-  const tocRef = useRef<HTMLDivElement>(null)
   const message = useContext(MessageManagerContext)
 
   // on text selection on this dom element, console log
@@ -230,44 +228,35 @@ export function PDFDocument({
 
   // Using width directly from props
 
-  const createNewHighlight = useCallback(
-    async (highlight: HighlightType | null = null) => {
-      try {
-        let newHighlight: HighlightType | null = highlight
+  const createNewHighlight = useCallback(async () => {
+    try {
+      let newHighlight: HighlightType | null = createHighlightFromSelection({
+        ctrRef: ctrRef.current
+      })
 
-        if (!newHighlight) {
-          newHighlight = createHighlightFromSelection({ ctrRef: ctrRef.current })
-        } else {
-          newHighlight = highlight
-        }
+      if (!newHighlight) return
 
-        if (!newHighlight) return
-
-        await pdfManager.addOrUpdateHighlight(newHighlight)
-      } catch (error) {
-        console.error(error || 'Could not create highlight!')
-        message.error(error || 'Could not create highlight!')
-      } finally {
-        if (iframeRef.current) {
-          iframeRef.current.style.opacity = '0'
-        }
+      await pdfManager.addOrUpdateHighlight(newHighlight)
+    } catch (error) {
+      console.error(error || 'Could not create highlight!')
+      message.error(error || 'Could not create highlight!')
+    } finally {
+      if (iframeRef.current) {
+        iframeRef.current.style.opacity = '0'
       }
-    },
-    [ctrRef, file]
-  )
+    }
+  }, [ctrRef, file])
 
   const highlightHovered = useRef<HighlightType | null>(null)
 
-  useKeyDown({ key: 'T', meta: true, callback: toggleToc }, [toggleToc])
-  useKeyDown({ key: 'H', meta: true, callback: createNewHighlight }, [createNewHighlight])
-  useKeyDown({ key: 'Enter', meta: true, callback: handleAddHighlightToChatBox }, [
-    handleAddHighlightToChatBox
-  ])
+  useKeyDown({ key: 'T', meta: true, callback: toggleToc })
+  useKeyDown({ key: 'H', meta: true, callback: createNewHighlight })
+  useKeyDown({ key: 'Enter', meta: true, callback: handleAddHighlightToChatBox })
 
   useKeyDown(
     {
-      key: 'r',
       meta: true,
+      key: 'r',
       callback: async () => {
         if (highlightHovered.current && highlightHovered.current.id) {
           try {
@@ -281,15 +270,6 @@ export function PDFDocument({
     },
     [file]
   )
-
-  useClick({
-    meta: true,
-    callback: () => {
-      if (highlightHovered.current) {
-        chatManager.setActiveHighlight(highlightHovered.current)
-      }
-    }
-  })
 
   useEffect(() => {
     if (!ctrRef.current) return

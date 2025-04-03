@@ -13,7 +13,6 @@ interface PDFPageVirtualizerProps {
   isInitializing: boolean
   setPageRef: (index: number) => (el: HTMLDivElement | null) => void
   annos: { [pageNumber: number]: { [id: string]: any } }
-  onAnnoClick: (args: { anno: any; pageNumber: number }) => void
 }
 
 export function PDFPageVirtualizer({
@@ -25,7 +24,6 @@ export function PDFPageVirtualizer({
   activePages,
   isInitializing,
   setPageRef,
-  onAnnoClick
 }: PDFPageVirtualizerProps) {
   useEffect(() => {
     Array.from({ length: numPages }).map((_, index) => {

@@ -7,7 +7,6 @@ import { DeepSeekProvider } from './DeepSeekProvider'
 import { 
   saveProviderToDb, 
   getAllProvidersFromDb, 
-  getProviderFromDb, 
   updateProviderSettingsInDb,
   saveActiveProviderInDb,
   getActiveProviderFromDb

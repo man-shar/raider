@@ -9,6 +9,7 @@ export interface PDFManager {
   getFile: () => RaiderFile
   addOrUpdateHighlight: (highlight: HighlightType) => Promise<void>
   addOrUpdateConversationInHistory: (conversation: ConversationType) => Promise<void>
+  removeConversationFromHistory: (conversation: ConversationType) => Promise<void>
   removeHighlight: (highlight: HighlightType) => Promise<void>
 }
 
@@ -104,6 +105,33 @@ export function PDFManager(f: RaiderFile): PDFManager {
     })
   }
 
+  async function removeConversationFromHistory(conversation: ConversationType) {
+    const idx = file.conversation_history.findIndex((c) => c.id === conversation.id)
+    console.log('here!!1', idx)
+
+    if (idx === -1) return
+
+    const newConversations = file.conversation_history.slice()
+
+    newConversations.splice(idx, 1)
+
+    const res = await window.fileHandler.removeConversation(
+      file.path,
+      file.is_url,
+      file.name,
+      conversation.id
+    )
+
+    if (res.error) {
+      throw new Error(res.error)
+    }
+
+    updateFile({
+      ...file,
+      conversation_history: newConversations
+    })
+  }
+
   return {
     get filePath() {
       return file.path
@@ -113,6 +141,7 @@ export function PDFManager(f: RaiderFile): PDFManager {
     subscribe,
     updateFile,
     addOrUpdateConversationInHistory,
+    removeConversationFromHistory,
     removeHighlight
   }
 }

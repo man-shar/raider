@@ -16,7 +16,7 @@ import {
 } from '@defogdotai/agents-ui-components/core-ui'
 import { AppContext } from '@renderer/context/AppContext'
 import { Conversation } from './Conversation'
-import { ChevronLeft, ListCollapse, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { PDFManager } from '../pdf-viewer/PDFManager'
 import { ConversationHistory } from './History'
 import { ConversationType } from '@types'
@@ -181,6 +181,22 @@ export function ChatSidebar({
                 setActiveTrackIndex((prev) => {
                   return (prev + 1) % tracks.length
                 })
+              }
+            }}
+            onDelete={async (item, idx) => {
+              if (!item) return
+
+              console.log('delete', item)
+              try {
+                await fileManager.removeConversationFromHistory(item)
+                if (!activeConversation) return
+                if (item.id === activeConversation.id) {
+                  // if this was the active conversation, set the active to the one before it
+                  setActiveConversation(idx === 0 ? null : conversations[idx - 1])
+                }
+              } catch (e) {
+                console.error(e)
+                message.error(e)
               }
             }}
             activeConversation={activeConversation}

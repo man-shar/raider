@@ -13,12 +13,12 @@ export function createSqlTables() {
   // first drop the table if it exists
   // db.prepare(
   //   `
-  //   DROP TABLE IF EXISTS files;;
+  //   DROP TABLE IF EXISTS files;
   // `
   // ).run()
   // db.prepare(
   //   `
-  //   DROP TABLE IF EXISTS open_files;;
+  //   DROP TABLE IF EXISTS open_files;
   // `
   // ).run()
 

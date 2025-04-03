@@ -5,7 +5,6 @@ import icon from '../../resources/icon.png?asset'
 import { globals } from './constants'
 import { setupHandlers } from './startup/setupHandlers'
 import { createSqlTables } from './startup/setupSQLTables'
-import { testProviderDbOperations } from './db/providerUtils.test'
 
 function createWindow(): void {
   // Create the browser window.
@@ -59,14 +58,6 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
-
-  // Register debug handler for testing provider database operations (only in dev mode)
-  if (is.dev) {
-    ipcMain.handle('debug:test-provider-db', () => {
-      testProviderDbOperations()
-      return { success: true }
-    })
-  }
 
   createSqlTables()
 

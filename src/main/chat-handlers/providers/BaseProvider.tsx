@@ -156,6 +156,11 @@ export abstract class BaseProvider implements ProviderInterface {
         images
       )
 
+      console.log(
+        'Message roles:',
+        initialMessages.map((d) => d.role)
+      )
+
       // Create a blank assistant message to show in the UI while streaming
       const blankAssistantMessage = {
         role: 'assistant',
@@ -171,11 +176,13 @@ export abstract class BaseProvider implements ProviderInterface {
       let updatedConversation: ConversationType = conversation
         ? {
             ...conversation,
-            messages: initialMessages
+            // remove the system message to save storage
+            messages: initialMessages.slice(1)
           }
         : {
             id: conversationId,
-            messages: initialMessages,
+            // remove the system message to save storage
+            messages: initialMessages.slice(1),
             timestamp: new Date().toISOString(),
             metadata: {
               model_name: model,
@@ -263,7 +270,8 @@ export abstract class BaseProvider implements ProviderInterface {
               conversation: {
                 ...conversation,
                 messages: [
-                  ...initialMessages,
+                  // remove system message to save storage
+                  ...initialMessages.slice(1),
                   { role: 'assistant', content: fullResponse, id: newMsgId, isLoading: true }
                 ]
               }
@@ -319,7 +327,8 @@ export abstract class BaseProvider implements ProviderInterface {
         conversation: {
           ...conversation,
           messages: [
-            ...normalizedMessages,
+            // remove system message to save storage
+            ...normalizedMessages.slice(1),
             { role: 'assistant', content: fullResponse, id: newMsgId, isLoading: false }
           ],
           tokens,
@@ -357,7 +366,8 @@ export abstract class BaseProvider implements ProviderInterface {
         conversation: {
           ...conversation,
           messages: [
-            ...normalizedMessages,
+            // remove system message to save storage
+            ...normalizedMessages.slice(1),
             {
               role: 'assistant',
               content: `Error: ${error.message}`,

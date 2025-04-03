@@ -185,16 +185,14 @@ export class OpenAIProvider extends BaseProvider {
       userPrompt = basicUserPrompt.replaceAll('{userInput}', userInput).trim()
     }
 
+    const systemMessage = {
+      id: crypto.randomUUID(),
+      role: 'system',
+      content: sysPrompt.trim()
+    }
+
     // Use existing conversation messages or create new ones
-    const initialMessages = conversation
-      ? conversation.messages
-      : [
-          {
-            id: crypto.randomUUID(),
-            role: 'system',
-            content: sysPrompt.trim()
-          }
-        ]
+    const initialMessages = [systemMessage, ...(conversation ? conversation.messages : [])]
 
     // Prepare the user message
     if (images && images.length > 0) {

@@ -15,8 +15,8 @@ export const useKeyDown = (
     meta?: boolean
     shift?: boolean
     alt?: boolean
-    target?: HTMLElement
-    callback: () => void
+    target?: HTMLElement | null
+    callback: (e: KeyboardEvent) => void
   },
   deps: any[] = []
 ) => {
@@ -36,7 +36,7 @@ export const useKeyDown = (
       ) {
         keyboardEvent.stopPropagation()
         keyboardEvent.preventDefault()
-        callback()
+        callback(keyboardEvent)
       }
     }
 

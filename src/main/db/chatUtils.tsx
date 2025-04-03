@@ -52,7 +52,7 @@ export function addOrUpdateConversationInDb({
   }
 }
 
-export function deleteConversationInDb({
+export function removeConversationInDb({
   path,
   is_url,
   name,
@@ -65,10 +65,32 @@ export function deleteConversationInDb({
 }): { error?: string } {
   const db = getDb()
   try {
-    const deleteStmt = db.prepare<[string, number, string, string]>(
-      `DELETE FROM files WHERE path = ? AND is_url = ? AND name = ? AND conversation_id = ?`
-    )
-    deleteStmt.run(path, is_url, name, conversationId)
+    const conversationHistoryStmt = db.prepare<
+      [string, number, string],
+      { conversation_history: string }
+    >(`SELECT conversation_history FROM files WHERE path = ? AND is_url = ? AND name = ?`)
+
+    const result = conversationHistoryStmt.get(path, is_url, name)
+
+    if (!result) {
+      throw new Error('Chat history not found')
+    }
+
+    // Parse the JSON string into an array
+    const conversationHistory: ConversationType[] = JSON.parse(result.conversation_history)
+
+    // find the index of the chat to update
+    const convIdx = conversationHistory.findIndex((c) => c.id === conversationId)
+
+    if (convIdx !== -1) {
+      conversationHistory.splice(convIdx, 1)
+
+      const updateStmt = db.prepare<[string, string, number, string]>(
+        `UPDATE files SET conversation_history = ? WHERE path = ? AND is_url = ? AND name = ?`
+      )
+      updateStmt.run(JSON.stringify(conversationHistory), path, is_url, name)
+    }
+
     return {}
   } catch (error: any) {
     console.error('Error deleting chat:', error)

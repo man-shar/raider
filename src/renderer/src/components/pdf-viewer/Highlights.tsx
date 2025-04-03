@@ -2,6 +2,9 @@ import { HighlightType } from '@types'
 import 'tippy.js/dist/tippy.css'
 import Tippy from '@tippyjs/react/headless' // different import path!
 import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
+import { useContext } from 'react'
+import { AppContext } from '@renderer/context/AppContext'
+import { useClick } from '@renderer/hooks/useClick'
 
 interface HighlightsProps {
   highlights: HighlightType[]
@@ -15,6 +18,8 @@ const classes = {
 }
 
 export function Highlights({ highlights = [], width, onHover }: HighlightsProps) {
+  const { chatManager } = useContext(AppContext)
+
   return highlights.map((highlight) => {
     const scale = highlight.originalViewportWidth / width
 
@@ -45,6 +50,14 @@ export function Highlights({ highlights = [], width, onHover }: HighlightsProps)
               <rect
                 onMouseEnter={() => onHover(highlight)}
                 onMouseLeave={() => onHover(null)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+
+                  if (!e.metaKey && !e.ctrlKey) return
+
+                  chatManager.setActiveHighlight(highlight)
+                }}
                 key={chunkIndex}
                 className={
                   highlight.has_conversation ? classes.hasConversation : classes.noConversation

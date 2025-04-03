@@ -116,23 +116,25 @@ function App({ initialFiles }: { initialFiles: RaiderFile[] }) {
         <MessageMonitor />
         <div className="prose min-w-screen h-screen relative flex flex-col max-h-full">
           <div className="flex flex-row divide-x divide-gray-200 w-full min-h-0 grow relative">
-            <div
-              className={twMerge(
-                'absolute top-30 -translate-y-1/2 bg-white border cursor-pointer hover:bg-gray-100 p-1 z-3 border-l-0 transition-all rounded-r-full',
-                sidebarOpen ? 'left-96' : 'left-0'
-              )}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
+            {fileManagers.length > 0 && (
+              <div
+                className={twMerge(
+                  'absolute top-30 -translate-y-1/2 bg-white border cursor-pointer hover:bg-gray-100 p-1 z-3 border-l-0 transition-all rounded-r-full',
+                  sidebarOpen ? 'left-96' : 'left-0'
+                )}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
 
-                setSidebarOpen((p) => !p)
-              }}
-            >
-              <div className="h-full w-1 bg-white absolute -left-1 top-0"></div>
-              <ChevronRight
-                className={twMerge('w-4 h-5 text-gray-400', sidebarOpen ? 'rotate-180' : '')}
-              />
-            </div>
+                  setSidebarOpen((p) => !p)
+                }}
+              >
+                <div className="h-full w-1 bg-white absolute -left-1 top-0"></div>
+                <ChevronRight
+                  className={twMerge('w-4 h-5 text-gray-400', sidebarOpen ? 'rotate-180' : '')}
+                />
+              </div>
+            )}
 
             {fileManagers.length ? (
               <div

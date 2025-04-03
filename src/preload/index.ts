@@ -40,6 +40,8 @@ const fileHandler: FileAPI = {
     ipcRenderer.invoke('file:update-highlights', path, highlights),
   closeFile: (path: string) => ipcRenderer.invoke('file:close', path),
   getOpenFiles: () => ipcRenderer.invoke('file:get-last-opened-files'),
+  removeConversation: (path: string, is_url: number, name: string, conversationId: string) =>
+    ipcRenderer.invoke('file:delete-conversation', path, is_url, name, conversationId),
   updateFileDetails: (path: string, is_url: number, name: string, details: FileDetails) =>
     ipcRenderer.invoke('file:update-details', path, is_url, name, details)
 }

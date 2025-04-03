@@ -1,11 +1,11 @@
 import { ipcMain } from 'electron'
 import sendChatMessage from '../chat-handlers/sendChatMessage'
-import { 
-  getProviders, 
-  getActiveProvider, 
-  setActiveProvider, 
-  updateProviderSettings, 
-  getAvailableModels 
+import {
+  getProviders,
+  getActiveProvider,
+  setActiveProvider,
+  updateProviderSettings,
+  getAvailableModels
 } from '../chat-handlers/providerHandlers'
 import { selectFile } from '../file-handlers/selectFile'
 import { openURL } from '../file-handlers/openURL'
@@ -15,17 +15,18 @@ import { getOpenFiles } from '../file-handlers/getOpenFiles'
 import { updateFileDetails } from '../file-handlers/updateFileDetails'
 import { createSqlTables } from './setupSQLTables'
 import { providerRegistry } from '../chat-handlers/providers/ProviderRegistry'
+import { removeConversation } from '../file-handlers/conversation'
 
 export function setupHandlers() {
   // Create database tables if they don't exist
   createSqlTables()
-  
+
   // Initialize provider registry (this will load settings from DB)
   providerRegistry.getAllProviders() // Trigger initialization
-  
+
   // chat handlers
   ipcMain.handle('chat:send-message', sendChatMessage)
-  
+
   // Provider and model management
   ipcMain.handle('chat:get-providers', getProviders)
   ipcMain.handle('chat:get-active-provider', getActiveProvider)
@@ -40,4 +41,5 @@ export function setupHandlers() {
   ipcMain.handle('file:close', closeFile)
   ipcMain.handle('file:get-last-opened-files', getOpenFiles)
   ipcMain.handle('file:update-details', updateFileDetails)
+  ipcMain.handle('file:delete-conversation', removeConversation)
 }

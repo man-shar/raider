@@ -125,8 +125,7 @@ export interface HighlightType {
   }[]
 }
 
-export type FileDetailsKeys = 'fullText' | 'pageWiseText'
-export type FileDetails = { [key in FileDetailsKeys]: any }
+export type FileDetails = { fullText: string; pageWiseText: { [pageNumber: number]: string } }
 
 export interface RaiderFile {
   path: string
@@ -151,6 +150,12 @@ export interface RaiderFileDbRow {
 export interface FileAPI {
   selectFile: () => Promise<{ files?: RaiderFile[]; error?: string }>
   openURL: (url: string) => Promise<{ file?: RaiderFile; error?: string }>
+  removeConversation: (
+    path: string,
+    is_url: number,
+    name: string,
+    conversationId: string
+  ) => Promise<{ error?: string }>
   updateHighlights: (
     path: string,
     highlights: HighlightType[]

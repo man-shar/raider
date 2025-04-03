@@ -2,15 +2,18 @@ import { ConversationType } from '@types'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useClick } from '@renderer/hooks/useClick'
-import { ChevronDownIcon } from 'lucide-react'
+import { ChevronDownIcon, Trash } from 'lucide-react'
+import { Button } from '@defogdotai/agents-ui-components/core-ui'
 
 export const ConversationHistory = ({
   conversationHistory = [],
   onClick = () => {},
-  activeConversation = null
+  activeConversation = null,
+  onDelete = () => {}
 }: {
   conversationHistory: ConversationType[]
   onClick: (conv: ConversationType | null) => void
+  onDelete: (conv: ConversationType, idx: number) => void
   activeConversation: ConversationType | null
 }) => {
   const [show, setShow] = useState(false)
@@ -39,7 +42,7 @@ export const ConversationHistory = ({
           setShow(!show)
         }}
       >
-        {!activeConversation ? 'New conversation' : activeConversation.messages[1].displayContent}
+        {!activeConversation ? 'New conversation' : activeConversation.messages[0].displayContent}
         <ChevronDownIcon
           className={twMerge(
             'w-4 h-4 absolute right-0 top-1/2 -translate-1/2 text-gray-400 transition-transform',
@@ -64,20 +67,32 @@ export const ConversationHistory = ({
         </span>
         {conversationHistory
           .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
-          .map((item) => {
+          .map((item, idx) => {
             return (
-              <span
-                key={item.id}
+              <div
                 onClick={() => onClick(item)}
                 className={twMerge(
-                  'hover:bg-gray-200 cursor-pointer p-2',
+                  'flex items-center flex-row hover:bg-gray-200 cursor-pointer p-2',
                   activeConversation?.id === item.id
                     ? 'bg-gray-200 font-bold text-gray-800'
                     : 'hover:text-gray-500'
                 )}
               >
-                {item.messages[1].displayContent ?? JSON.stringify(item.messages[1].content)}
-              </span>
+                <span key={item.id} className="grow">
+                  {item.messages[0].displayContent ?? JSON.stringify(item.messages[0].content)}
+                </span>
+                <Button
+                  className="bg-gray-200 self-end group cursor-pointer hover:bg-gray-100/70 px-1 py-0 border border-transparent hover:border-gray-300 border-b-2 rounded-md"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onDelete(item, idx)
+                    setShow(!show)
+                  }}
+                >
+                  <Trash className="w-4 stroke-gray-400 group-hover:stroke-gray-600" />
+                </Button>
+              </div>
             )
           })}
       </div>
