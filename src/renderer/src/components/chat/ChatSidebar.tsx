@@ -196,8 +196,11 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
           {activeConversation ? (
             <Conversation key={activeConversation.id} messages={activeConversation.messages} />
           ) : (
-            <div className="grow flex overflow-visible items-center justify-center text-xs text-gray-400 h-full">
-              <LyricDisplay track={tracks[activeTrackIndex]} />
+            // <div className="grow flex overflow-visible items-center justify-center text-xs text-gray-400 h-full">
+            //   <LyricDisplay track={tracks[activeTrackIndex]} />
+            // </div>
+            <div className="grow flex overflow-visible items-center justify-start p-2 text-xs text-gray-400 h-full">
+              Start asking below
             </div>
           )}
         </div>

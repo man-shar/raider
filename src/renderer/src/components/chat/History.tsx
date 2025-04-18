@@ -70,6 +70,7 @@ export const ConversationHistory = ({
           .map((item, idx) => {
             return (
               <div
+                key={item.id}
                 onClick={() => onClick(item)}
                 className={twMerge(
                   'flex items-center flex-row hover:bg-gray-200 cursor-pointer p-2',
@@ -78,7 +79,7 @@ export const ConversationHistory = ({
                     : 'hover:text-gray-500'
                 )}
               >
-                <span key={item.id} className="grow">
+                <span className="grow">
                   {item.messages[0].displayContent ?? JSON.stringify(item.messages[0].content)}
                 </span>
                 <Button

@@ -1,1 +1,3 @@
 The user's question is: {userInput}
+
+{userPromptInstructions}

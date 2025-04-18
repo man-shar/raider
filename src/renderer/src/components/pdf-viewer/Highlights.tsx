@@ -34,12 +34,8 @@ export function Highlights({ highlights = [], width, onHover }: HighlightsProps)
           render={(attrs) => (
             <div className="bg-white text-xs rounded-md border p-2" {...attrs}>
               <div className="flex flex-col gap-2">
-                <KeyboardShortcutIndicator
-                  meta={true}
-                  clickIcon={true}
-                  text={'Start conversation'}
-                />
-                <KeyboardShortcutIndicator meta={true} keyValue={'R'} text={'Remove highlight'} />
+                <KeyboardShortcutIndicator clickIcon={true} text={'Start conversation'} />
+                <KeyboardShortcutIndicator keyValue={'R'} text={'Remove highlight'} />
               </div>
             </div>
           )}
@@ -53,8 +49,6 @@ export function Highlights({ highlights = [], width, onHover }: HighlightsProps)
                 onClick={(e) => {
                   e.stopPropagation()
                   e.preventDefault()
-
-                  if (!e.metaKey && !e.ctrlKey) return
 
                   chatManager.setActiveHighlight(highlight)
                 }}

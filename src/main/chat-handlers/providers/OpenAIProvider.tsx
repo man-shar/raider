@@ -15,12 +15,25 @@ import systemPromptWithoutHighlightWithoutFullText from '../prompts/sys-without-
 import basicSystemPrompt from '../prompts/basic-sys.txt?raw'
 import basicUserPrompt from '../prompts/basic-user.txt?raw'
 
+import generalInstructions from '../prompts/general-instructions.txt?raw'
+import userPromptInstructions from '../prompts/user-prompt-instructions.txt?raw'
+
 export class OpenAIProvider extends BaseProvider {
   protected costConfig: ProviderCostConfig = {
     'gpt-4o-mini': {
       input: 0.15,
       output: 0.6,
       cachedInput: 0.075
+    },
+    'gpt-4.1-mini': {
+      input: 0.4,
+      output: 1.6,
+      cachedInput: 0.1
+    },
+    'gpt-4.1-nano': {
+      input: 0.1,
+      output: 0.4,
+      cachedInput: 0.025
     },
     'gpt-4o': {
       input: 0.5,
@@ -278,10 +291,14 @@ export class OpenAIProvider extends BaseProvider {
       userPrompt = basicUserPrompt.replaceAll('{userInput}', userInput).trim()
     }
 
+    sysPrompt = sysPrompt.replace('{generalInstructions}', generalInstructions).trim()
+
+    userPrompt = userPrompt.replace('{userPromptInstructions}', userPromptInstructions).trim()
+
     const systemMessage = {
       id: crypto.randomUUID(),
       role: 'system',
-      content: sysPrompt.trim()
+      content: sysPrompt
     }
 
     // Use existing conversation messages or create new ones

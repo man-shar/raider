@@ -61,11 +61,14 @@ export function PDFManager(initialState: RaiderFile): PDFManager {
 
   function updateFile(newFileOrUpdater: RaiderFile | Updater): void {
     checkReady()
+
     if (typeof newFileOrUpdater === 'function') {
       file = newFileOrUpdater(file)
     } else {
       file = newFileOrUpdater
     }
+
+    console.log(file)
 
     alertListeners()
   }

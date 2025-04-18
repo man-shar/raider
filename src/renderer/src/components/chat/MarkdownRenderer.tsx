@@ -1,52 +1,35 @@
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import { MathExtension } from '@aarkue/tiptap-math-extension'
 import 'katex/dist/katex.min.css'
-import { useEffect } from 'react'
-import { Markdown } from 'tiptap-markdown'
+import 'katex/dist/fonts/KaTeX_Size2-Regular.woff2'
+import 'katex/dist/fonts/KaTeX_Main-Regular.woff2'
+import 'katex/dist/fonts/KaTeX_Math-Italic.woff2'
+import { marked } from 'marked'
+import { parseTextWithMath } from '@renderer/utils'
 
 interface MarkdownRendererProps {
   content: string | any // Allow complex content types
   className?: string
 }
 
-const extensions = [StarterKit, MathExtension, Markdown]
-
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
   // Ensure content is a string before passing to the editor
-  const normalizedContent = typeof content === 'string' 
-    ? content 
-    : Array.isArray(content)
-      ? JSON.stringify(content)
-      : typeof content === 'object' && content !== null
+  const normalizedContent = parseTextWithMath(
+    typeof content === 'string'
+      ? content
+      : Array.isArray(content)
         ? JSON.stringify(content)
-        : String(content || '')
-  
-  const editor = useEditor({
-    extensions: extensions,
-    content: normalizedContent,
-    editable: false
-  })
-
-  useEffect(() => {
-    if (editor) {
-      const contentToSet = typeof content === 'string' 
-        ? content 
-        : Array.isArray(content)
+        : typeof content === 'object' && content !== null
           ? JSON.stringify(content)
-          : typeof content === 'object' && content !== null
-            ? JSON.stringify(content)
-            : String(content || '')
-            
-      if (contentToSet !== editor.getHTML()) {
-        editor.commands.setContent(contentToSet)
-      }
-    }
-  }, [content, editor])
+          : String(content || '')
+  )
 
   return (
     <div className={`markdown-renderer ${className} prose`}>
-      <EditorContent editor={editor} />
+      <div
+        className="prose dark:prose-invert prose-sm max-w-none py-1"
+        dangerouslySetInnerHTML={{
+          __html: marked.parse(normalizedContent)
+        }}
+      />
     </div>
   )
 }

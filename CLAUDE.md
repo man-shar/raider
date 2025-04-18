@@ -23,14 +23,14 @@
 ## Project Architecture
 
 - Electron app with React frontend
-- PDF viewer with highlight capabilities 
+- PDF viewer with highlight capabilities
 - Chat interface with OpenAI and Anthropic integration
 - Multi-modal support for text and images in chat
 - SQLite database for persistence
 
 ## UI Components and Libraries
 
-- **Tiptap**: Used for Markdown rendering with LaTeX support
+- **Parsed**: Used for Markdown rendering with LaTeX support using katex
 - **KaTeX**: Mathematical formula rendering
 - **Tailwind**: Utility-first CSS framework
 - **PDFPageVirtualizer**: Custom component for efficient PDF rendering with virtualization
@@ -52,7 +52,7 @@
 - **Streaming Text**: Use state management with React useEffect and useRef for real-time content updates
 - **Chat Infrastructure**: Messages flow from OpenAI API → Electron IPC → React components
 - **Conditional Rendering**: Only render assistant messages with Markdown, keep user messages as plain text
-- **Performance Optimizations**: 
+- **Performance Optimizations**:
   - Debounce content updates in editors to prevent excessive re-rendering
   - Use feature detection to only apply markdown rendering when needed
   - Set explicit keys on list items for better React reconciliation
@@ -62,7 +62,7 @@
 
 ## API Usage
 
-- The app uses the GPT-4o-mini model with streaming responses
+- The app uses the GPT-4.1-nano model with streaming responses by default
 - System prompts contain explicit instructions for response formatting
 - Cost tracking is implemented with token counting for both input and output
 
@@ -70,7 +70,7 @@
 
 - **IPC Communication**: All Electron-React communication happens via preload scripts
 - **Database Access**: Always use the db utility functions to ensure proper error handling
-- **CSS Organization**: 
+- **CSS Organization**:
   - Component-specific CSS goes in the component files
   - Global styles live in assets/main.css
   - Editor-specific styles are grouped together (e.g., Markdown/LaTeX styles)

@@ -259,11 +259,10 @@ export function PDFDocument({
   const highlightHovered = useRef<HighlightType | null>(null)
 
   useKeyDown({ key: 'T', meta: true, callback: toggleToc })
-  useKeyDown({ key: 'H', meta: true, callback: createNewHighlight })
-  useKeyDown({ key: 'Enter', meta: true, callback: handleAddHighlightToChatBox })
+  useKeyDown({ key: 'H', callback: createNewHighlight })
+  useKeyDown({ key: 'Enter', callback: handleAddHighlightToChatBox })
 
   useKeyDown({
-    meta: true,
     key: 'r',
     callback: async () => {
       if (highlightHovered.current && highlightHovered.current.id) {
@@ -424,8 +423,8 @@ export function PDFDocument({
         }}
       >
         <div ref={tooltipRef} className="tooltip text-xs w-full h-full flex flex-col gap-2">
-          <KeyboardShortcutIndicator meta={true} keyValue={'Enter'} text="Start conversation" />
-          <KeyboardShortcutIndicator meta={true} keyValue={'H'} text="Create highlight" />
+          <KeyboardShortcutIndicator keyValue={'Enter'} text="Start conversation" />
+          <KeyboardShortcutIndicator keyValue={'H'} text="Create highlight" />
         </div>
       </IFrame>
 

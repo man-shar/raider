@@ -193,6 +193,7 @@ function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
                                 }
                               )
 
+                            mgr.updateFile((f) => ({ ...f, details: updatedDetails }))
                             if (error) throw new Error(error)
                           } catch (e) {
                             console.error(e)

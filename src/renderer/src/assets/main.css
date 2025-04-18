@@ -157,29 +157,6 @@ kbd {
   @apply bg-transparent p-0;
 }
 
-.markdown-renderer .math-node {
-  @apply my-4 py-2 px-1 overflow-x-auto;
-}
-
-.markdown-renderer .math-node-inline {
-  @apply my-0 py-0 px-1 inline-block align-middle;
-}
-
-/* Hide KaTeX HTML fallback */
-.katex-html {
-  @apply hidden;
-}
-
-/* Ensure proper spacing around LaTeX elements */
-.markdown-renderer .ProseMirror .katex {
-  @apply mx-1 text-lg;
-}
-
-/* Properly size and center block math */
-.markdown-renderer .ProseMirror .math-node .katex-display {
-  @apply overflow-x-auto my-2;
-}
-
 /* Hide editor placeholder when empty */
 .markdown-renderer .ProseMirror p.is-editor-empty:first-child::before {
   @apply hidden;
