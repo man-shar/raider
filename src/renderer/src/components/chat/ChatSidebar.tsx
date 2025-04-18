@@ -92,7 +92,7 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
       if (!textAreaRef.current) return
 
       const val = e.currentTarget.value
-      if (e.key === 'Enter' && val.trim()) {
+      if (e.key === 'Enter' && val.trim() && (e.metaKey || e.ctrlKey)) {
         try {
           if (!fileManager) throw new Error('File manager not found')
 
@@ -298,6 +298,12 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
             autoResize={true}
             defaultRows={1}
             ref={textAreaRef}
+            suffix={
+              <div className="space-x-1 text-gray-400 text-xs font-light">
+                <KeyboardShortcutIndicator meta keyValue="Enter" inline />
+                to send!
+              </div>
+            }
           ></TextArea>
         </div>
 

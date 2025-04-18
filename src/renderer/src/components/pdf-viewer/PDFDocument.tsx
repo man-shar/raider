@@ -27,6 +27,7 @@ type PDFOutline = Awaited<ReturnType<PDFDocumentProxy['getOutline']>>
 
 // Import custom outline styles
 import '@renderer/assets/pdf-outline.css'
+import { useClick } from '@renderer/hooks/useClick'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -139,7 +140,7 @@ export function PDFDocument({
     [statusManager]
   )
 
-  const ctrRef = useRef<HTMLDivElement | null>(null)
+  const [ctrRef, setCtrRef] = useState<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const documentRef = useRef<DocumentRef>(null)
@@ -151,7 +152,7 @@ export function PDFDocument({
 
     // get selection location on the browser window
     // and log it
-    if (!tooltipRef.current || !iframeRef.current || !ctrRef.current) return
+    if (!tooltipRef.current || !iframeRef.current || !ctrRef) return
     iframeRef.current.style.opacity = '0'
     iframeRef.current.style.pointerEvents = 'none'
 
@@ -174,15 +175,15 @@ export function PDFDocument({
 
     const range = selection.getRangeAt(0)
     const clientRects = range.getClientRects()
-    const ctrRect = ctrRef.current?.getBoundingClientRect()
+    const ctrRect = ctrRef?.getBoundingClientRect()
 
     let top = clientRects[0].top - ctrRect?.top - iframeRef.current.offsetHeight - 10
-    let left = clientRects[0].left - ctrRef.current?.getBoundingClientRect().left
+    let left = clientRects[0].left - ctrRef?.getBoundingClientRect().left
 
     // if going outside the window, set it to 5 from the top
     // or 5 from the right
     if (top < 0) {
-      const topOfParent = ctrRef.current?.getBoundingClientRect().top
+      const topOfParent = ctrRef?.getBoundingClientRect().top
       if (topOfParent + top < 0) {
         top = 5
       } else {
@@ -199,7 +200,7 @@ export function PDFDocument({
     iframeRef.current.style.top = `${top}px`
     iframeRef.current.style.left = `${left}px`
     iframeRef.current.style.pointerEvents = 'auto'
-  }, [])
+  }, [ctrRef])
 
   // detect ctrl enter keypress
   const handleAddHighlightToChatBox = useCallback(() => {
@@ -209,7 +210,7 @@ export function PDFDocument({
     }
 
     const highlight = createHighlightFromSelection({
-      ctrRef: ctrRef.current,
+      ctrRef: ctrRef,
       hasConversation: true
     })
 
@@ -240,7 +241,7 @@ export function PDFDocument({
   const createNewHighlight = useCallback(async () => {
     try {
       let newHighlight: HighlightType | null = createHighlightFromSelection({
-        ctrRef: ctrRef.current
+        ctrRef: ctrRef
       })
 
       if (!newHighlight) return
@@ -258,33 +259,39 @@ export function PDFDocument({
 
   const highlightHovered = useRef<HighlightType | null>(null)
 
-  useKeyDown({ key: 'T', meta: true, callback: toggleToc })
-  useKeyDown({ key: 'H', callback: createNewHighlight })
-  useKeyDown({ key: 'Enter', callback: handleAddHighlightToChatBox })
+  useKeyDown({ key: 'T', meta: true, callback: toggleToc }, [])
+  useKeyDown({ key: 'H', target: ctrRef, callback: createNewHighlight }, [ctrRef])
+  useKeyDown({ key: 'Enter', target: ctrRef, callback: handleAddHighlightToChatBox }, [ctrRef])
+  useClick({ callback: toggleToc }, [])
 
-  useKeyDown({
-    key: 'r',
-    callback: async () => {
-      if (highlightHovered.current && highlightHovered.current.id) {
-        try {
-          pdfManager.removeHighlight(highlightHovered.current)
-        } catch (error) {
-          console.error(error || 'Could not delete highlight!')
-          message.error(error || 'Could not delete highlight!')
+  useKeyDown(
+    {
+      key: 'r',
+      callback: async () => {
+        if (highlightHovered.current && highlightHovered.current.id) {
+          try {
+            pdfManager.removeHighlight(highlightHovered.current)
+          } catch (error) {
+            console.error(error || 'Could not delete highlight!')
+            message.error(error || 'Could not delete highlight!')
+          }
         }
       }
-    }
-  })
+    },
+    []
+  )
 
   useEffect(() => {
-    if (!ctrRef.current) return () => {}
+    if (!ctrRef) return () => {}
+
+    console.log(ctrRef)
 
     document.addEventListener('selectionchange', handleSelectionChange)
 
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange)
     }
-  }, [handleSelectionChange])
+  }, [ctrRef, handleSelectionChange])
 
   // Track which pages should have active content
   const [activePages, setActivePages] = useState<number[]>([])
@@ -293,7 +300,7 @@ export function PDFDocument({
 
   // Calculate which pages should be active based on scroll position
   const updateActivePages = useCallback(() => {
-    if (!scrollContainerRef.current || !ctrRef.current || !numPages) return
+    if (!scrollContainerRef.current || !ctrRef || !numPages) return
 
     const scrollContainer = scrollContainerRef.current
 
@@ -336,10 +343,10 @@ export function PDFDocument({
 
   // Initialize scrolling and page visibility detection
   useEffect(() => {
-    if (!ctrRef.current || !numPages) return () => {}
+    if (!ctrRef || !numPages) return () => {}
 
     // Find scroll container
-    const scrollContainer = ctrRef.current.closest('.view-ctr') as HTMLElement
+    const scrollContainer = ctrRef.closest('.view-ctr') as HTMLElement
     if (!scrollContainer) return () => {}
 
     scrollContainerRef.current = scrollContainer
@@ -383,8 +390,9 @@ export function PDFDocument({
     return { data: new Uint8Array(file.buf) }
   }, [file.buf])
 
+  console.log('Rerernder')
   return (
-    <div ref={ctrRef} className="w-full relative">
+    <div ref={(e) => setCtrRef(e)} className="w-full relative" tabIndex={0}>
       {outline && (
         <button
           className="sticky top-[50vh] left-[20px] z-3 h-0"

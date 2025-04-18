@@ -21,7 +21,9 @@ export const useKeyDown = (
   deps: any[] = []
 ) => {
   useEffect(() => {
-    const targetResolved = target ?? document
+    const isDocumentTarget = target ? false : true
+    const targetResolved = isDocumentTarget ? document : target
+
     const keyDownHandler = (event: Event) => {
       const keyboardEvent = event as KeyboardEvent
       const isMac = window.navigator.platform.includes('Mac')
@@ -44,5 +46,5 @@ export const useKeyDown = (
     return () => {
       targetResolved.removeEventListener('keydown', keyDownHandler)
     }
-  }, [key, callback, ...deps])
+  }, [target, key, callback, ...deps])
 }
