@@ -16,6 +16,12 @@ $ pnpm install
 
 ### Usage
 
+Create a `.env` file with the following variables:
+
+```
+MAIN_VITE_OPENAI_API_KEY="YOUR_OAI_API_KEY"
+```
+
 ```bash
 $ pnpm dev
 ```
