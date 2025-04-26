@@ -25,7 +25,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
   return (
     <div className={`markdown-renderer ${className} prose`}>
       <div
-        className="prose dark:prose-invert prose-sm max-w-none py-1 whitespace-pre-wrap"
+        className="prose dark:prose-invert prose-sm max-w-none py-1"
         dangerouslySetInnerHTML={{
           __html: marked.parse(normalizedContent).trim()
         }}

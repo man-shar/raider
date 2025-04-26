@@ -35,7 +35,7 @@ export function Highlights({ highlights = [], width, onHover }: HighlightsProps)
             <div className="bg-white text-xs rounded-md border p-2" {...attrs}>
               <div className="flex flex-col gap-2">
                 <KeyboardShortcutIndicator clickIcon={true} text={'Start conversation'} />
-                <KeyboardShortcutIndicator keyValue={'R'} text={'Remove highlight'} />
+                <KeyboardShortcutIndicator meta keyValue={'R'} text={'Remove highlight'} />
               </div>
             </div>
           )}

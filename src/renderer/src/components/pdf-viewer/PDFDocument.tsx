@@ -266,8 +266,9 @@ export function PDFDocument({
 
   useKeyDown(
     {
-      key: 'r',
-      callback: async () => {
+      key: 'R',
+      meta: true,
+      callback: () => {
         if (highlightHovered.current && highlightHovered.current.id) {
           try {
             pdfManager.removeHighlight(highlightHovered.current)
@@ -339,6 +340,7 @@ export function PDFDocument({
     }
 
     setActivePages(newActivePages)
+    localStorage.setItem(file.path + '--activePages', JSON.stringify(newActivePages))
   }, [numPages])
 
   // Initialize scrolling and page visibility detection
@@ -368,13 +370,32 @@ export function PDFDocument({
 
     // Initialize active pages
     // Start with first few pages active
-    const initialActivePages = Array.from({ length: Math.min(5, numPages) }, (_, i) => i)
-    setActivePages(initialActivePages)
+    let initialActivePages, initTimer
 
     // After a delay, perform the first real calculation
-    const initTimer = setTimeout(() => {
+    initTimer = setTimeout(() => {
       setIsInitializing(false)
-      updateActivePages()
+
+      try {
+        initialActivePages = JSON.parse(localStorage.getItem(file.path + '--activePages'))
+        if (!initialActivePages.length) throw new Error()
+        setActivePages(initialActivePages)
+        // also scroll to the page
+        const targetPage = initialActivePages[Math.floor(initialActivePages.length / 2)]
+
+        // scroll document to the page ref
+        const pageRef = pageRefs.current[targetPage - 1]
+        if (pageRef) {
+          pageRef.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          })
+        }
+      } catch (e) {
+        console.error(e)
+
+        updateActivePages()
+      }
     }, 500)
 
     return () => {
@@ -390,7 +411,6 @@ export function PDFDocument({
     return { data: new Uint8Array(file.buf) }
   }, [file.buf])
 
-  console.log('Rerernder')
   return (
     <div ref={(e) => setCtrRef(e)} className="w-full relative" tabIndex={0}>
       {outline && (
