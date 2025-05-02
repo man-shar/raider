@@ -430,7 +430,7 @@ export function PDFDocument({
     <div ref={(e) => setCtrRef(e)} className="w-full relative" tabIndex={0}>
       {outline && (
         <button
-          className="sticky top-[50vh] left-[20px] z-3 h-0"
+          className="sticky top-[50vh] left-[20px] h-0"
           onClick={toggleToc}
           title="Toggle Table of Contents (⌘T)"
         >

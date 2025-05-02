@@ -311,6 +311,7 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
           open={selectedImage && imageModalOpen ? true : false}
           onCancel={handleCloseImageModal}
           footer={false}
+          className="z-4"
         >
           {selectedImage?.base64 && <img src={selectedImage?.base64} />}
         </Modal>

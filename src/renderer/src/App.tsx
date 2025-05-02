@@ -105,7 +105,7 @@ function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
             {fileManagers.length > 0 && (
               <div
                 className={twMerge(
-                  'absolute top-30 -translate-y-1/2 bg-white border cursor-pointer hover:bg-gray-100 p-1 z-3 border-l-0 transition-all rounded-r-full',
+                  'absolute top-30 -translate-y-1/2 bg-white border cursor-pointer hover:bg-gray-100 p-1 z-2 border-l-0 transition-all rounded-r-full',
                   sidebarOpen ? 'left-96' : 'left-0'
                 )}
                 onClick={(e) => {
@@ -125,7 +125,7 @@ function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
             {fileManagers.length ? (
               <div
                 className={twMerge(
-                  'relative sidebar w-96 h-full bg-white overflow-hidden transition-all duration-300',
+                  'relative sidebar z-2 w-96 h-full bg-white overflow-hidden transition-all duration-300',
                   sidebarOpen ? 'min-w-96 max-w-96 w-96' : ' min-w-0 max-w-0 w-0'
                 )}
               >
@@ -136,7 +136,7 @@ function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
                 </div>
               </div>
             ) : null}
-            <div ref={contentRef} className="view-ctr grow overflow-scroll relative">
+            <div ref={contentRef} className="view-ctr grow overflow-scroll relative z-1">
               <Nav
                 selectedFilePath={selectedFilePath}
                 fileManagers={fileManagers}
