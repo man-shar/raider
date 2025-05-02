@@ -106,7 +106,8 @@ kbd {
 
 /* Markdown and LaTeX Styles */
 .markdown-renderer {
-  @apply text-wrap break-all text-sm;
+  word-break: auto-phrase;
+  @apply text-wrap text-sm;
 }
 
 .markdown-renderer .ProseMirror {

@@ -13,7 +13,7 @@ interface HighlightsProps {
 }
 
 const classes = {
-  hasConversation: 'fill-gray-200 opacity-80 group-hover:fill-gray-300',
+  hasConversation: 'fill-green-200 opacity-80 group-hover:fill-green-300',
   noConversation: 'fill-yellow-200 opacity-80 group-hover:fill-yellow-300'
 }
 

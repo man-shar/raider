@@ -259,6 +259,8 @@ export class OpenAIProvider extends BaseProvider {
       )
     }
 
+    const numPages = Object.keys(pageWiseText || {}).length + ''
+
     if (highlightedText && fileText) {
       if (!isTooBig) {
         sysPrompt = systemPromptWithHighlightWithFullText.replaceAll('{fileText}', fileText)
@@ -267,6 +269,7 @@ export class OpenAIProvider extends BaseProvider {
           .replace('{fileTextFirst10Pages}', first10PagesText)
           .replace('{beforeHighlight}', beforeHighlight)
           .replace('{afterHighlight}', afterHighlight)
+          .replace('{pageNumber}', numPages)
           .replace('{highlightPageText}', highlightPageText)
       }
 
@@ -281,6 +284,7 @@ export class OpenAIProvider extends BaseProvider {
         sysPrompt = systemPromptWithoutHighlightWithoutFullText
           .replace('{fileTextFirst10Pages}', first10PagesText)
           .replace('{beforeHighlight}', beforeHighlight)
+          .replace('{pageNumber}', numPages)
           .replace('{afterHighlight}', afterHighlight)
           .replace('{highlightPageText}', highlightPageText)
       }
@@ -291,7 +295,19 @@ export class OpenAIProvider extends BaseProvider {
       userPrompt = basicUserPrompt.replaceAll('{userInput}', userInput).trim()
     }
 
+    console.log('---')
+    console.log(sysPrompt.slice(0, 2000))
+    console.log('---')
+
+    console.log('---')
+    console.log(generalInstructions)
+    console.log('---')
+
     sysPrompt = sysPrompt.replace('{generalInstructions}', generalInstructions).trim()
+
+    console.log('---')
+    console.log(sysPrompt.slice(0, 2000))
+    console.log('---')
 
     userPrompt = userPrompt.replace('{userPromptInstructions}', userPromptInstructions).trim()
 
@@ -300,6 +316,10 @@ export class OpenAIProvider extends BaseProvider {
       role: 'system',
       content: sysPrompt
     }
+
+    console.log('---')
+    console.log(sysPrompt.slice(0, 2000))
+    console.log('---')
 
     // Use existing conversation messages or create new ones
     const initialMessages = [systemMessage, ...(conversation ? conversation.messages : [])]
