@@ -2,7 +2,7 @@ import { Page } from 'react-pdf'
 import { Highlights } from './Highlights'
 import { HighlightType } from '@types'
 import { BUFFER_SIZE } from '../utils/constants'
-import { useEffect } from 'react'
+import { Ref, useEffect } from 'react'
 
 interface PDFPageVirtualizerProps {
   numPages: number
@@ -11,6 +11,7 @@ interface PDFPageVirtualizerProps {
   onHover: (highlight: HighlightType | null) => void
   activePages: number[]
   isInitializing: boolean
+  ctrRef: Ref<HTMLDivElement>
   setPageRef: (index: number) => (el: HTMLDivElement | null) => void
   annos: { [pageNumber: number]: { [id: string]: any } }
 }
@@ -23,7 +24,8 @@ export function PDFPageVirtualizer({
   onHover,
   activePages,
   isInitializing,
-  setPageRef,
+  ctrRef,
+  setPageRef
 }: PDFPageVirtualizerProps) {
   useEffect(() => {
     Array.from({ length: numPages }).map((_, index) => {
@@ -32,7 +34,7 @@ export function PDFPageVirtualizer({
   }, [])
 
   return (
-    <div className="pdf-virtualized-pages">
+    <div className="pdf-virtualized-pages" ref={ctrRef}>
       {Array.from({ length: numPages }).map((_, index) => {
         const isActive = isInitializing
           ? index < BUFFER_SIZE // First few pages during initialization

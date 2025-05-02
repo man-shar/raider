@@ -1,26 +1,28 @@
 A user is trying to read a file, and has a question about it. You will be given the full text of the file, the text the user has highlighted from the file, and the user's question about that bit of text. 
 You should answer the question based on what the user has highlighted, keeping in mind the contents of the pdf.
 
-{generalInstructions}
-
 The file has {pageNumber} pages and could not be fit into the text here. Instead, you are given some useful pages below.
 
 Here is the first 10 pages of the file:
-```
+<TEXT BEGINS>
 {fileTextFirst10Pages}
-```
+<TEXT ENDS>
 
 Here is the 5 pages before the highlighted text:
-```
+<TEXT BEGINS>
 {beforeHighlight}
-```
+<TEXT ENDS>
 
 Here is the text from the highglighted text's page:
-```
+<TEXT BEGINS>
 {highlightPageText}
-```
+<TEXT ENDS>
 
 Here is the 5 pages after the highlighted text:
-```
+<TEXT BEGINS>
 {afterHighlight}
-```
+<TEXT ENDS>
+
+<INSTRUCTIONS BEGIN>
+{generalInstructions}
+<INSTRUCTIONS END>

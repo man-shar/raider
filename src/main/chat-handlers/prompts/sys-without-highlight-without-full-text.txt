@@ -1,10 +1,12 @@
 A user is trying to read a file, and has a question about it. You will be given almost all of the file text, and the user's question about the file.
 
-{generalInstructions}
-
 The file has {pageNumber} pages and could not be fit into the text here. Instead, you are given some useful pages below.
 
 Here is the first 10 pages of the file:
-```
+<TEXT BEGINS>
 {fileTextFirst10Pages}
-```
+<TEXT ENDS>
+
+<INSTRUCTIONS BEGIN>
+{generalInstructions}
+<INSTRUCTIONS END>

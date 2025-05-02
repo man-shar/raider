@@ -49,6 +49,7 @@ export function PDFDocument({
 }) {
   const [numPages, setNumPages] = useState<number>()
   const pageWiseText = useRef<{ [pageNumber: number]: string }>({})
+  const pageCtrRef = useRef<HTMLDivElement>(null)
   const fullText = useRef<string>('')
 
   const { chatManager } = useContext(AppContext)
@@ -285,8 +286,6 @@ export function PDFDocument({
   useEffect(() => {
     if (!ctrRef) return () => {}
 
-    console.log(ctrRef)
-
     document.addEventListener('selectionchange', handleSelectionChange)
 
     return () => {
@@ -339,7 +338,19 @@ export function PDFDocument({
       newActivePages.push(i)
     }
 
-    setActivePages(newActivePages)
+    setActivePages((prev) => {
+      if (newActivePages.join(',') === prev.join(',')) return prev
+      return newActivePages
+    })
+
+    // also update the scroll position as a percentage from top, so we can always stay at the exact right place
+    if (pageCtrRef.current) {
+      const pageCtrRect = pageCtrRef.current.getBoundingClientRect()
+      localStorage.setItem(
+        file.path + '--scrollPos',
+        '' + Math.abs(pageCtrRect.top) / Math.abs(pageCtrRect.height)
+      )
+    }
     localStorage.setItem(file.path + '--activePages', JSON.stringify(newActivePages))
   }, [numPages])
 
@@ -370,7 +381,7 @@ export function PDFDocument({
 
     // Initialize active pages
     // Start with first few pages active
-    let initialActivePages, initTimer
+    let initialActivePages, initTimer, initialPos
 
     // After a delay, perform the first real calculation
     initTimer = setTimeout(() => {
@@ -378,16 +389,20 @@ export function PDFDocument({
 
       try {
         initialActivePages = JSON.parse(localStorage.getItem(file.path + '--activePages'))
+        initialPos = +localStorage.getItem(file.path + '--scrollPos')
+
         if (!initialActivePages.length) throw new Error()
+
         setActivePages(initialActivePages)
-        // also scroll to the page
+
+        // scroll to the actual page
         const targetPage = initialActivePages[Math.floor(initialActivePages.length / 2)]
 
         // scroll document to the page ref
-        const pageRef = pageRefs.current[targetPage - 1]
+        const pageRef = pageRefs.current[targetPage]
         if (pageRef) {
           pageRef.scrollIntoView({
-            behavior: 'smooth',
+            behavior: 'instant',
             block: 'start'
           })
         }
@@ -402,7 +417,7 @@ export function PDFDocument({
       scrollContainer.removeEventListener('scroll', handleScroll)
       clearTimeout(initTimer)
     }
-  }, [ctrRef, numPages, updateActivePages])
+  }, [ctrRef, numPages, updateActivePages, width])
 
   const { current: annos } = useRef<{ [pageNumber: number]: { [id: string]: any } }>({})
 
@@ -468,7 +483,7 @@ export function PDFDocument({
             const pageRef = pageRefs.current[pageNumber - 1]
             if (pageRef) {
               pageRef.scrollIntoView({
-                behavior: 'smooth',
+                behavior: 'instant',
                 block: 'start'
               })
             }
@@ -476,6 +491,7 @@ export function PDFDocument({
         >
           {numPages && (
             <PDFPageVirtualizer
+              ctrRef={pageCtrRef}
               annos={annos}
               numPages={numPages}
               width={width}

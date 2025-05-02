@@ -295,19 +295,7 @@ export class OpenAIProvider extends BaseProvider {
       userPrompt = basicUserPrompt.replaceAll('{userInput}', userInput).trim()
     }
 
-    console.log('---')
-    console.log(sysPrompt.slice(0, 2000))
-    console.log('---')
-
-    console.log('---')
-    console.log(generalInstructions)
-    console.log('---')
-
     sysPrompt = sysPrompt.replace('{generalInstructions}', generalInstructions).trim()
-
-    console.log('---')
-    console.log(sysPrompt.slice(0, 2000))
-    console.log('---')
 
     userPrompt = userPrompt.replace('{userPromptInstructions}', userPromptInstructions).trim()
 
@@ -316,10 +304,6 @@ export class OpenAIProvider extends BaseProvider {
       role: 'system',
       content: sysPrompt
     }
-
-    console.log('---')
-    console.log(sysPrompt.slice(0, 2000))
-    console.log('---')
 
     // Use existing conversation messages or create new ones
     const initialMessages = [systemMessage, ...(conversation ? conversation.messages : [])]
