@@ -27,7 +27,6 @@ type PDFOutline = Awaited<ReturnType<PDFDocumentProxy['getOutline']>>
 
 // Import custom outline styles
 import '@renderer/assets/pdf-outline.css'
-import { useClick } from '@renderer/hooks/useClick'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -349,7 +348,23 @@ export function PDFDocument({
     }
 
     setActivePages((prev) => {
+      if (!prev || !Array.isArray(prev)) return newActivePages
+
       if (newActivePages.join(',') === prev.join(',')) return prev
+
+      const currStartPage = prev[0]
+      const currEndPage = prev.slice(-1)[0]
+
+      // only update if either minVisiblePage < current start page
+      // or maxVisiblePage is > current end page
+      if (
+        minVisiblePage >= currStartPage &&
+        minVisiblePage <= currEndPage &&
+        maxVisiblePage >= currStartPage &&
+        maxVisiblePage <= currEndPage
+      )
+        return prev
+
       return newActivePages
     })
 
