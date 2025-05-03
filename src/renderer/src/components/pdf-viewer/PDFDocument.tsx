@@ -233,7 +233,10 @@ export function PDFDocument({
 
   const [tocVisible, setTocVisible] = useState(false)
 
-  const toggleToc = useCallback(() => {
+  const toggleToc = useCallback((e: any) => {
+    e?.preventDefault()
+    e?.stopPropagation()
+
     setTocVisible((prev) => !prev)
   }, [])
 
@@ -263,7 +266,6 @@ export function PDFDocument({
   useKeyDown({ key: 'T', meta: true, callback: toggleToc }, [])
   useKeyDown({ key: 'H', target: ctrRef, callback: createNewHighlight }, [ctrRef])
   useKeyDown({ key: 'Enter', target: ctrRef, callback: handleAddHighlightToChatBox }, [ctrRef])
-  useClick({ callback: toggleToc }, [])
 
   useKeyDown(
     {
@@ -286,10 +288,18 @@ export function PDFDocument({
   useEffect(() => {
     if (!ctrRef) return () => {}
 
+    const tocOff = (e) => {
+      if (e.target.closest('.toc-btn') || e.target.closest('.toc-ctr')) return
+
+      setTocVisible(false)
+    }
+
     document.addEventListener('selectionchange', handleSelectionChange)
+    ctrRef.addEventListener('click', tocOff)
 
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange)
+      ctrRef.removeEventListener('click', tocOff)
     }
   }, [ctrRef, handleSelectionChange])
 
@@ -430,11 +440,11 @@ export function PDFDocument({
     <div ref={(e) => setCtrRef(e)} className="w-full relative" tabIndex={0}>
       {outline && (
         <button
-          className="sticky top-[50vh] left-[20px] h-0"
+          className="toc-btn z-5 sticky top-[50vh] left-[20px] h-0"
           onClick={toggleToc}
           title="Toggle Table of Contents (⌘T)"
         >
-          <div className="h-fit space-y-2 rounded-md p-2 shadow border cursor-pointer gap-2 bg-white hover:bg-gray-100 group">
+          <div className="h-fit space-y-2 rounded-md p-2 shadow border border-gray-300 cursor-pointer gap-2 bg-white hover:bg-gray-50 group">
             <div className="w-2 h-2 border-b border-gray-500"></div>
             <div className="w-2 h-2 border-b border-gray-500"></div>
             <div className="w-2 h-2 border-b border-gray-500"></div>

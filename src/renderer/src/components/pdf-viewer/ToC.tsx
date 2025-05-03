@@ -72,7 +72,7 @@ export const ToC: React.FC<ToCProps> = ({ outline, linkService, hidden }) => {
     <div
       ref={sidebarRef}
       className={twMerge(
-        'z-5 sticky top-[50vh] -translate-y-1/2 ml-14 h-0 transition-all duration-300 origin-left',
+        'toc-ctr z-5 sticky top-[50vh] -translate-y-1/2 ml-14 h-0 transition-all duration-300 origin-left',
         hidden
           ? 'opacity-0 scale-0 pointer-events-none'
           : 'opacity-100 scale-100 pointer-events-auto'

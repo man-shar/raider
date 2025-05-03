@@ -19,7 +19,8 @@ export const useClick = (
   deps: any[] = []
 ) => {
   useEffect(() => {
-    const targetResolved = target ?? document
+    const isDocumentTarget = target ? false : true
+    const targetResolved = isDocumentTarget ? document : target
 
     const clickHandler = (event: Event) => {
       const mouseEvent = event as MouseEvent
