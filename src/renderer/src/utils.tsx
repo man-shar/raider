@@ -178,3 +178,13 @@ export function parseTextWithMath(expr: string) {
   } finally {
   }
 }
+
+export const MOUSE_BUTTON = {
+  NONE: 0,
+  LEFT: 1,
+  MIDDLE: 2,
+  Right: 3
+}
+
+/** Timer after which jump back to button disappears. Set at 30 secs */
+export const JUMP_BACK_TO_TIMEOUT = 3000

@@ -160,7 +160,6 @@ export function PDFManager(initialState: RaiderFile): PDFManager {
     checkReady()
 
     const idx = file.conversation_history.findIndex((c) => c.id === conversation.id)
-    console.log('here!!1', idx)
 
     if (idx === -1) return
 

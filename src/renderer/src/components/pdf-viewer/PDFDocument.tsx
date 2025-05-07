@@ -16,7 +16,7 @@ import { IFrame } from '../utils/Iframe'
 import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
 import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
-import { createHighlightFromSelection } from '@renderer/utils'
+import { createHighlightFromSelection, JUMP_BACK_TO_TIMEOUT } from '@renderer/utils'
 import { AppContext } from '@renderer/context/AppContext'
 import { PDFManager } from './PDFManager'
 import { PDFPageVirtualizer } from './PDFPageVirtualizer'
@@ -27,6 +27,7 @@ type PDFOutline = Awaited<ReturnType<PDFDocumentProxy['getOutline']>>
 
 // Import custom outline styles
 import '@renderer/assets/pdf-outline.css'
+import { Undo, Undo2 } from 'lucide-react'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -306,6 +307,10 @@ export function PDFDocument({
   const [activePages, setActivePages] = useState<number[]>([])
   const scrollContainerRef = useRef<HTMLElement | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
+  const mostVisiblePage = useRef<{ pageNumber: number; intersectionH: number }>({
+    pageNumber: null,
+    intersectionH: 0
+  })
 
   // Calculate which pages should be active based on scroll position
   const updateActivePages = useCallback(() => {
@@ -315,6 +320,11 @@ export function PDFDocument({
 
     // Find visible pages
     const visiblePages: number[] = []
+    // also reset the most visible page
+    mostVisiblePage.current = {
+      pageNumber: null,
+      intersectionH: 0
+    }
 
     for (let i = 0; i < numPages; i++) {
       const pageElement = pageRefs.current[i]
@@ -324,7 +334,23 @@ export function PDFDocument({
       const containerRect = scrollContainer.getBoundingClientRect()
 
       // Check if page is in viewport
-      if (rect.bottom > containerRect.top && rect.top < containerRect.bottom) {
+
+      // calculate pct inside screen
+      const isBottomOfPageBelowCtrTop = rect.bottom > containerRect.top
+      const isTopOfPageAboveCtrBottom = rect.top < containerRect.bottom
+
+      const intersectionH =
+        Math.min(containerRect.bottom, rect.bottom) - Math.max(containerRect.top, rect.top)
+
+      if (isBottomOfPageBelowCtrTop && isTopOfPageAboveCtrBottom) {
+        if (
+          !mostVisiblePage.current.pageNumber ||
+          mostVisiblePage.current.intersectionH < intersectionH
+        ) {
+          mostVisiblePage.current.pageNumber = i + 1
+          mostVisiblePage.current.intersectionH = intersectionH
+        }
+
         visiblePages.push(i)
       }
     }
@@ -451,6 +477,10 @@ export function PDFDocument({
     return { data: new Uint8Array(file.buf) }
   }, [file.buf])
 
+  const [jumpBackTo, setJumpBackTo] = useState<{ pageNumber: number; timeout: NodeJS.Timeout }>(
+    null
+  )
+
   return (
     <div ref={(e) => setCtrRef(e)} className="w-full relative" tabIndex={0}>
       {outline && (
@@ -496,6 +526,30 @@ export function PDFDocument({
         </div>
       </IFrame>
 
+      {jumpBackTo && jumpBackTo.pageNumber && (
+        <div
+          className="sticky text-sm text-gray-500 cursor-pointer hover:bg-gray-100 top-20 w-fit m-auto z-4 bg-white border-1 border-b-2 select-none border-gray-400 shadow-md rounded-full p-1 px-2 flex flex-row items-center gap-2"
+          onClick={() => {
+            // scroll document to the page ref
+            const pageRef = pageRefs.current[jumpBackTo.pageNumber - 1]
+
+            if (pageRef) {
+              pageRef.scrollIntoView({
+                behavior: 'instant',
+                block: 'start'
+              })
+              // set to null after clicking
+              setJumpBackTo({
+                pageNumber: null,
+                timeout: null
+              })
+            }
+          }}
+        >
+          Back to page {jumpBackTo.pageNumber} <Undo2 className="w-4 h-4 " />
+        </div>
+      )}
+
       {ctrRef && fileBuf && (
         <Document
           ref={documentRef}
@@ -504,12 +558,33 @@ export function PDFDocument({
           options={options.current}
           className="relative pdf-document"
           onItemClick={async ({ dest, pageNumber }) => {
+            // note that this is different from the PdfPageVirtualizer's onMouseDown event handlers attached to each page
+            // this handles left-mouse-button clicks on outline items/links to things within the pdf
+            // the internal one does slightly more subtle/specific things like opening links and opening a peek preview
+            // if middle mouse button is pressed
+
             // scroll document to the page ref
             const pageRef = pageRefs.current[pageNumber - 1]
             if (pageRef) {
-              pageRef.scrollIntoView({
-                behavior: 'instant',
-                block: 'start'
+              setJumpBackTo((prev) => {
+                // clear old timeout jic exists
+                clearTimeout(prev && prev?.timeout)
+
+                const p = mostVisiblePage.current.pageNumber
+
+                // do this *after* storing the page above to prevent getting target page value
+                pageRef.scrollIntoView({
+                  behavior: 'instant',
+                  block: 'start'
+                })
+
+                return {
+                  pageNumber: p,
+                  // after a certain timeout, hide the jumpback to button
+                  timeout: setTimeout(() => {
+                    setJumpBackTo({ pageNumber: null, timeout: null })
+                  }, JUMP_BACK_TO_TIMEOUT)
+                }
               })
             }
           }}
