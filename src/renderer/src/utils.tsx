@@ -187,4 +187,4 @@ export const MOUSE_BUTTON = {
 }
 
 /** Timer after which jump back to button disappears. Set at 30 secs */
-export const JUMP_BACK_TO_TIMEOUT = 3000
+export const JUMP_BACK_TO_TIMEOUT = 30000
