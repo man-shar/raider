@@ -162,3 +162,7 @@ kbd {
 .markdown-renderer .ProseMirror p.is-editor-empty:first-child::before {
   @apply hidden;
 }
+
+.katex-display {
+  @apply overflow-scroll;
+}

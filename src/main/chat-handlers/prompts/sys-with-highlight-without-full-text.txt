@@ -1,3 +1,5 @@
+{personalityInstructions}
+
 A user is trying to read a file, and has a question about it. You will be given the full text of the file, the text the user has highlighted from the file, and the user's question about that bit of text. 
 You should answer the question based on what the user has highlighted, keeping in mind the contents of the pdf.
 
@@ -24,5 +26,5 @@ Here is the 5 pages after the highlighted text:
 <TEXT ENDS>
 
 <INSTRUCTIONS BEGIN>
-{generalInstructions}
+{formatInstructions}
 <INSTRUCTIONS END>

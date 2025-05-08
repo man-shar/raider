@@ -12,7 +12,6 @@ import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { HighlightType } from '@types'
 import LinkService from 'react-pdf/src/LinkService.js'
 import { ScrollPageIntoViewArgs } from 'react-pdf/src/shared/types.js'
-import { IFrame } from '../utils/Iframe'
 import { MessageManagerContext } from '@defogdotai/agents-ui-components/core-ui'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
 import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
@@ -27,7 +26,8 @@ type PDFOutline = Awaited<ReturnType<PDFDocumentProxy['getOutline']>>
 
 // Import custom outline styles
 import '@renderer/assets/pdf-outline.css'
-import { Undo, Undo2 } from 'lucide-react'
+import { TableOfContents, TextQuote, Undo, Undo2, X } from 'lucide-react'
+import { twMerge } from 'tailwind-merge'
 
 interface DocumentRef {
   linkService: React.RefObject<LinkService>
@@ -143,7 +143,6 @@ export function PDFDocument({
 
   const [ctrRef, setCtrRef] = useState<HTMLDivElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
   const documentRef = useRef<DocumentRef>(null)
   const message = useContext(MessageManagerContext)
 
@@ -153,9 +152,9 @@ export function PDFDocument({
 
     // get selection location on the browser window
     // and log it
-    if (!tooltipRef.current || !iframeRef.current || !ctrRef) return
-    iframeRef.current.style.opacity = '0'
-    iframeRef.current.style.pointerEvents = 'none'
+    if (!tooltipRef.current || !ctrRef) return
+    tooltipRef.current.style.opacity = '0'
+    tooltipRef.current.style.pointerEvents = 'none'
 
     const selection = document.getSelection()
 
@@ -178,7 +177,7 @@ export function PDFDocument({
     const clientRects = range.getClientRects()
     const ctrRect = ctrRef?.getBoundingClientRect()
 
-    let top = clientRects[0].top - ctrRect?.top - iframeRef.current.offsetHeight - 10
+    let top = clientRects[0].top - ctrRect?.top - tooltipRef.current.offsetHeight - 10
     let left = clientRects[0].left - ctrRef?.getBoundingClientRect().left
 
     // if going outside the window, set it to 5 from the top
@@ -192,21 +191,21 @@ export function PDFDocument({
       }
     }
 
-    if (left + iframeRef.current?.offsetWidth > ctrRect.width) {
-      left = ctrRect.width - 10 - iframeRef.current?.offsetWidth
+    if (left + tooltipRef.current?.offsetWidth > ctrRect.width) {
+      left = ctrRect.width - 10 - tooltipRef.current?.offsetWidth
     }
 
     // set tooltip position
-    iframeRef.current.style.opacity = '1'
-    iframeRef.current.style.top = `${top}px`
-    iframeRef.current.style.left = `${left}px`
-    iframeRef.current.style.pointerEvents = 'auto'
+    tooltipRef.current.style.opacity = '1'
+    tooltipRef.current.style.top = `${top}px`
+    tooltipRef.current.style.left = `${left}px`
+    tooltipRef.current.style.pointerEvents = 'auto'
   }, [ctrRef])
 
   // detect ctrl enter keypress
   const handleAddHighlightToChatBox = useCallback(() => {
     const selection = document.getSelection()
-    if (!selection || selection.toString() === '' || !iframeRef.current) {
+    if (!selection || selection.toString() === '' || !tooltipRef.current) {
       return
     }
 
@@ -227,7 +226,7 @@ export function PDFDocument({
       console.error(error || 'Could not start conversation')
     } finally {
       // hide tooltip
-      iframeRef.current.style.opacity = '0'
+      tooltipRef.current.style.opacity = '0'
     }
   }, [chatManager])
 
@@ -255,8 +254,8 @@ export function PDFDocument({
       console.error(error || 'Could not create highlight!')
       message.error(error || 'Could not create highlight!')
     } finally {
-      if (iframeRef.current) {
-        iframeRef.current.style.opacity = '0'
+      if (tooltipRef.current) {
+        tooltipRef.current.style.opacity = '0'
       }
     }
   }, [ctrRef])
@@ -489,13 +488,13 @@ export function PDFDocument({
           onClick={toggleToc}
           title="Toggle Table of Contents (⌘T)"
         >
-          <div className="h-fit space-y-2 rounded-md p-2 shadow border border-gray-300 cursor-pointer gap-2 bg-white hover:bg-gray-50 group">
-            <div className="w-2 h-2 border-b border-gray-500"></div>
-            <div className="w-2 h-2 border-b border-gray-500"></div>
-            <div className="w-2 h-2 border-b border-gray-500"></div>
-            <div className="w-2 h-2 border-b border-gray-500"></div>
-            <div className="w-2 h-2 border-b border-gray-500"></div>
-            <div className="w-2 h-2 border-b border-gray-500"></div>
+          <div className="h-fit space-y-2 rounded-md shadow border p-2 border-gray-300 cursor-pointer gap-2 bg-white hover:bg-gray-50 group">
+            <div className="w-2 h-1 border-b-1 border-gray-400"></div>
+            <div className="w-2 h-1 border-b-1 border-gray-400"></div>
+            <div className="w-2 h-1 border-b-1 border-gray-400"></div>
+            <div className="w-2 h-1 border-b-1 border-gray-400"></div>
+            <div className="w-2 h-1 border-b-1 border-gray-400"></div>
+            <div className="w-2 h-1 border-b-1 border-gray-400"></div>
           </div>
         </button>
       )}
@@ -509,26 +508,17 @@ export function PDFDocument({
         />
       )}
 
-      <IFrame
-        ref={iframeRef}
-        className="w-60 shadow-md h-20 p-2 rounded-md bg-white border text-xs"
-        style={{
-          opacity: 0,
-          position: 'absolute',
-          left: 0,
-          zIndex: 1000,
-          pointerEvents: 'none'
-        }}
+      <div
+        ref={tooltipRef}
+        className="absolute w-60 shadow-md h-20 p-2 rounded-md bg-white border text-xs tooltip flex flex-col gap-2 opacity-0 left-0 z-1000 pointer-events-none"
       >
-        <div ref={tooltipRef} className="tooltip text-xs w-full h-full flex flex-col gap-2">
-          <KeyboardShortcutIndicator keyValue={'Enter'} text="Start conversation" />
-          <KeyboardShortcutIndicator keyValue={'H'} text="Create highlight" />
-        </div>
-      </IFrame>
+        <KeyboardShortcutIndicator keyValue={'Enter'} text="Start conversation" />
+        <KeyboardShortcutIndicator keyValue={'H'} text="Create highlight" />
+      </div>
 
       {jumpBackTo && jumpBackTo.pageNumber && (
         <div
-          className="sticky text-sm text-gray-500 cursor-pointer hover:bg-gray-100 top-20 w-fit m-auto z-4 bg-white border-1 border-b-2 select-none border-gray-400 shadow-md rounded-full p-1 px-2 flex flex-row items-center gap-2"
+          className="sticky top-20 text-sm text-gray-500 cursor-pointer hover:bg-gray-100 w-fit m-auto z-4 bg-white border-1 border-b-2 select-none border-gray-400 shadow-md rounded-full p-1 px-2 flex flex-row items-center gap-2"
           onClick={() => {
             // scroll document to the page ref
             const pageRef = pageRefs.current[jumpBackTo.pageNumber - 1]
@@ -538,15 +528,36 @@ export function PDFDocument({
                 behavior: 'instant',
                 block: 'start'
               })
+
               // set to null after clicking
-              setJumpBackTo({
-                pageNumber: null,
-                timeout: null
+              setJumpBackTo((prev) => {
+                clearTimeout(prev && prev?.timeout)
+                return {
+                  pageNumber: null,
+                  timeout: null
+                }
               })
             }
           }}
         >
-          Back to page {jumpBackTo.pageNumber} <Undo2 className="w-4 h-4 " />
+          <span className="flex items-center gap-2 hover:text-gray-800">
+            Back to page {jumpBackTo?.pageNumber} <Undo2 className="w-4 h-4 inline" />
+          </span>
+          <X
+            className="w-4 h-4 hover:text-gray-800"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              // set to null after clicking
+              setJumpBackTo((prev) => {
+                clearTimeout(prev && prev?.timeout)
+                return {
+                  pageNumber: null,
+                  timeout: null
+                }
+              })
+            }}
+          />
         </div>
       )}
 
@@ -582,7 +593,11 @@ export function PDFDocument({
                   pageNumber: p,
                   // after a certain timeout, hide the jumpback to button
                   timeout: setTimeout(() => {
-                    setJumpBackTo({ pageNumber: null, timeout: null })
+                    setJumpBackTo((prev) => {
+                      clearTimeout(prev && prev?.timeout)
+
+                      return { pageNumber: null, timeout: null }
+                    })
                   }, JUMP_BACK_TO_TIMEOUT)
                 }
               })

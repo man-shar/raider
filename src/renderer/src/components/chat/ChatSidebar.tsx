@@ -284,7 +284,7 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
             }}
             disabled={loading}
             rootClassNames="sticky bottom-0"
-            textAreaClassNames="max-h-60 overflow-auto shadow-none"
+            textAreaClassNames="max-h-60 overflow-auto shadow-none pr-2"
             label={
               <div className="space-x-1 text-gray-400 text-xs font-light">
                 <span>Continue chatting</span>

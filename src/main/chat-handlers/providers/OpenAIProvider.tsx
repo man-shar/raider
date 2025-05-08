@@ -15,7 +15,8 @@ import systemPromptWithoutHighlightWithoutFullText from '../prompts/sys-without-
 import basicSystemPrompt from '../prompts/basic-sys.txt?raw'
 import basicUserPrompt from '../prompts/basic-user.txt?raw'
 
-import generalInstructions from '../prompts/general-instructions.txt?raw'
+import formatInstructions from '../prompts/format-instructions.txt?raw'
+import personalityInstructions from '../prompts/personality-instructions.txt?raw'
 import userPromptInstructions from '../prompts/user-prompt-instructions.txt?raw'
 
 export class OpenAIProvider extends BaseProvider {
@@ -295,7 +296,8 @@ export class OpenAIProvider extends BaseProvider {
       userPrompt = basicUserPrompt.replaceAll('{userInput}', userInput).trim()
     }
 
-    sysPrompt = sysPrompt.replace('{generalInstructions}', generalInstructions).trim()
+    sysPrompt = sysPrompt.replace('{formatInstructions}', formatInstructions).trim()
+    sysPrompt = sysPrompt.replace('{personalityInstructions}', personalityInstructions).trim()
 
     userPrompt = userPrompt.replace('{userPromptInstructions}', userPromptInstructions).trim()
 
