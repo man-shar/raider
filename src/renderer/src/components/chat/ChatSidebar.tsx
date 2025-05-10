@@ -207,10 +207,8 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
 
         <div className="rounded-2xl divide-y space-y-3 bg-gray-50 border border-gray-300 border-b-2 p-2">
           {activeHighlight && (
-            <div className="text-gray-400 border-b pb-2 border-gray-200 text-xs relative max-h-60 overflow-auto">
+            <div className="text-gray-400 border-b pb-2 border-gray-200 text-xs relative">
               <div className="text-gray-500 mb-2">Highlighted text</div>
-
-              {activeHighlight.fullText}
 
               <X
                 className="absolute w-4 h-4 top-0 right-1 cursor-pointer hover:stroke-3"
@@ -218,6 +216,8 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
                   chatManager.setActiveHighlight(null)
                 }}
               />
+
+              <div className="overflow-scroll max-h-58">{activeHighlight.fullText}</div>
             </div>
           )}
 

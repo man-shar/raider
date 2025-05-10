@@ -9,8 +9,6 @@ import { createSqlTables } from './startup/setupSQLTables'
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    // width: 900,
-    // height: 670,
     show: false,
     // titleBarStyle: 'hidden',
     titleBarOverlay: true,
@@ -23,13 +21,16 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow.maximize()
+    // mainWindow.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
+
+  mainWindow.webContents.setVisualZoomLevelLimits(1, 3)
 
   globals['MAIN_WINDOW_ID'] = mainWindow.id
 

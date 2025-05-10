@@ -589,6 +589,9 @@ export function PDFDocument({
                   block: 'start'
                 })
 
+                // if current page is equal to target page, do nothing
+                if (p === pageNumber) return prev
+
                 return {
                   pageNumber: p,
                   // after a certain timeout, hide the jumpback to button
