@@ -1,1 +1,1 @@
-Please use the <latex-inline> and <latex-block> tags. It is really hard to read your answer otherwise.
+As mentioned in your instructions, please use the <latex-inline> and <latex-block> tags for all math expressions.

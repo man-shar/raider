@@ -27,4 +27,4 @@ Here is the 5 pages after the highlighted text:
 
 <INSTRUCTIONS BEGIN>
 {formatInstructions}
-<INSTRUCTIONS END>
+</INSTRUCTIONS END>

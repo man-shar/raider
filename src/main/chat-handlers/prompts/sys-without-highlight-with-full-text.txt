@@ -5,8 +5,8 @@ A user is trying to read a file, and has a question about it. You will be given 
 Here is the file text:
 <FILE TEXT BEGINS>
 {fileText}
-<FILE TEXT ENDS>
+</FILE TEXT ENDS>
 
 <INSTRUCTIONS BEGIN>
 {formatInstructions}
-<INSTRUCTIONS END>
+</INSTRUCTIONS END>

@@ -518,7 +518,7 @@ export function PDFDocument({
 
       {jumpBackTo && jumpBackTo.pageNumber && (
         <div
-          className="sticky top-20 text-sm text-gray-500 cursor-pointer hover:bg-gray-100 w-fit m-auto z-4 bg-white border-1 border-b-2 select-none border-gray-400 shadow-md rounded-full p-1 px-2 flex flex-row items-center gap-2"
+          className="sticky top-20 text-sm text-gray-400 cursor-pointer w-fit m-auto z-4 bg-white border-1 border-b-2 select-none border-gray-300 shadow-md rounded-full flex flex-row items-center gap-2"
           onClick={() => {
             // scroll document to the page ref
             const pageRef = pageRefs.current[jumpBackTo.pageNumber - 1]
@@ -540,11 +540,11 @@ export function PDFDocument({
             }
           }}
         >
-          <span className="flex items-center gap-2 hover:text-gray-800">
+          <span className="pl-2 py-1 flex items-center gap-2 hover:text-gray-800">
             Back to page {jumpBackTo?.pageNumber} <Undo2 className="w-4 h-4 inline" />
           </span>
-          <X
-            className="w-4 h-4 hover:text-gray-800"
+          <div
+            className="px-2 py-1 min-h-full grow group border-l hover:text-gray-800"
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -557,7 +557,9 @@ export function PDFDocument({
                 }
               })
             }}
-          />
+          >
+            <X className="w-4 h-4 " />
+          </div>
         </div>
       )}
 

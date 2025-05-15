@@ -7,8 +7,8 @@ You should answer the question based on what the user has highlighted, keeping i
 ```
 {fileText}
 ```
-<FILE TEXT ENDS>
+</FILE TEXT ENDS>
 
 <INSTRUCTIONS BEGIN>
 {formatInstructions}
-<INSTRUCTIONS END>
+</INSTRUCTIONS END>

@@ -4,4 +4,4 @@ A user is trying to read a file, and has a question about it. You will be given 
 
 <INSTRUCTIONS BEGIN>
 {formatInstructions}
-<INSTRUCTIONS END>
+</INSTRUCTIONS END>
