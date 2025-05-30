@@ -28,7 +28,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
   const [fileManagers, setFileManagers] = useState<PDFManager[]>(initialFileManagers)
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(
-    fileManagers.length ? fileManagers[0].filePath : null
+    localStorage.getItem('selectedFileManager') ||
+      (fileManagers.length ? fileManagers[0].filePath : null)
   )
   // Track PDF container width
   const [contentWidth, setContentWidth] = useState<number>(800)
@@ -38,6 +39,10 @@ function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
     if (!selectedFilePath || !fileManagers || !fileManagers.length) return null
     return fileManagers.find((m) => m.getFile().path === selectedFilePath) || null
   }, [selectedFilePath, fileManagers])
+
+  useEffect(() => {
+    localStorage.setItem('selectedFileManager', selectedFilePath || '')
+  }, [selectedFilePath])
 
   // These are now provided by AppContextProvider
   // const { current: chatManager } = useRef(ChatManager())
@@ -161,19 +166,21 @@ function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
                 }}
               />
 
-              <div className="files relative z-1">
+              <div className="files relative z-1 h-screen">
                 {fileManagers.map((mgr, index) => {
                   const file = mgr.getFile()
+
+                  if (selectedFilePath !== file.path) {
+                    return null
+                  }
 
                   // Keep all components but hide non-active ones
                   return (
                     <div
                       key={index}
                       className={twMerge(
-                        'relative w-full',
-                        selectedFilePath === file.path
-                          ? 'visible'
-                          : 'invisible absolute top-0 left-0 h-0 w-0 overflow-hidden'
+                        'relative w-full h-screen',
+                        selectedFilePath !== file.path ? 'fixed -top-1000 -left-1000' : ''
                       )}
                       aria-hidden={selectedFilePath !== file.path}
                     >
