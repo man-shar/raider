@@ -162,16 +162,16 @@ export function createStatusManager() {
   // Clear completed or error tasks
   const clearCompletedTasks = () => {
     const tasksToRemove: string[] = []
-    
+
     tasks.forEach((task) => {
       if (
-        (task.status === 'completed' || task.status === 'error') && 
+        (task.status === 'completed' || task.status === 'error') &&
         !task.parentId // Only remove top-level tasks
       ) {
         tasksToRemove.push(task.id)
       }
     })
-    
+
     tasksToRemove.forEach(removeTask)
     alertListeners()
   }

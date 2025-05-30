@@ -31,18 +31,38 @@ export function updateFileDetailsInDb({
   path: string
   is_url: number
   name: string
-  details: FileDetails
-}): { error?: string; updatedDetails?: FileDetails } {
+  details: Partial<FileDetails>
+}): { error?: string; updatedDetails: FileDetails } {
   const db = getDb()
   try {
+    // First get existing details
+    const selectStmt = db.prepare(`SELECT details FROM files WHERE path = ? AND is_url = ? AND name = ?`)
+    const row = selectStmt.get(path, is_url, name) as { details: string } | undefined
+    
+    let existingDetails: FileDetails = {
+      fullText: '',
+      pageWiseText: {},
+      fileTokenLength: 0
+    }
+    
+    if (row) {
+      existingDetails = JSON.parse(row.details)
+    }
+
+    // Merge with new details
+    const updatedDetails: FileDetails = {
+      ...existingDetails,
+      ...details
+    }
+
     const updateStmt = db.prepare(
       `UPDATE files SET details = ? WHERE path = ? AND is_url = ? AND name = ?`
     )
-    updateStmt.run(JSON.stringify(details), path, is_url, name)
-    return { updatedDetails: details }
+    updateStmt.run(JSON.stringify(updatedDetails), path, is_url, name)
+    return { updatedDetails }
   } catch (error: any) {
     console.error('Error updating file details:', error)
-    return { error: error.message }
+    return { error: error.message, updatedDetails: { fullText: '', pageWiseText: {}, fileTokenLength: 0 } }
   } finally {
     db.close()
   }

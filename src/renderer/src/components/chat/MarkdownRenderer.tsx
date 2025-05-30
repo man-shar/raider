@@ -27,7 +27,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       <div
         className="prose dark:prose-invert prose-sm max-w-none py-1"
         dangerouslySetInnerHTML={{
-          __html: marked.parse(normalizedContent).trim()
+          __html: String(marked.parse(normalizedContent)).trim()
         }}
       />
     </div>

@@ -1,10 +1,11 @@
 import { IpcMainInvokeEvent } from 'electron'
 import { ConversationType, NewMessageDetails, ProviderType } from '@types'
-import { startChatCompletion, resendMessage, getActiveProvider, getProviderSettings, getProviderConfig } from './providers'
+import { resendMessage, getActiveProvider, getProviderSettings, getProviderConfig } from './providers'
 
-export default async function sendChatMessage(
+export default async function resendChatMessage(
   _event: IpcMainInvokeEvent,
-  details: NewMessageDetails
+  details: NewMessageDetails,
+  failedMessageId: string
 ): Promise<ConversationType | { error: string }> {
   try {
     // Determine which provider to use
@@ -21,10 +22,10 @@ export default async function sendChatMessage(
       return { error: `Please set an API key for ${config.name} in settings` }
     }
 
-    // Start the chat with the selected provider
-    return startChatCompletion(details)
+    // Resend the message
+    return resendMessage(details, failedMessageId)
   } catch (error) {
-    console.error('Error in sendChatMessage:', error)
+    console.error('Error in resendChatMessage:', error)
     return { error: error.message }
   }
 }

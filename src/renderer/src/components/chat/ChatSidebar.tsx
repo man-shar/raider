@@ -19,7 +19,7 @@ import { Conversation } from './Conversation'
 import { X } from 'lucide-react'
 import { PDFManager } from '../pdf-viewer/PDFManager'
 import { ConversationHistory } from './History'
-import { ConversationType } from '@types'
+import { ConversationType, MessageWithHighlights } from '@types'
 import KeyboardShortcutIndicator from '../utils/KeyboardShortcutIndicator'
 import { useKeyDown } from '@renderer/hooks/useKeyDown'
 import { LyricDisplay, tracks } from '../utils/lyrics'
@@ -86,6 +86,51 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
   }, [fileManager])
 
   const [activeConversation, setActiveConversation] = useState<ConversationType | null>(null)
+
+  // Resend functionality for failed messages
+  const handleResendMessage = useCallback(
+    async (failedMessage: MessageWithHighlights) => {
+      console.log('Resend clicked:', { failedMessage, activeConversation })
+
+      if (!failedMessage.error?.originalMessage || !activeConversation) {
+        console.log('Resend aborted - missing data:', {
+          hasError: !!failedMessage.error,
+          hasOriginalMessage: !!failedMessage.error?.originalMessage,
+          hasActiveConversation: !!activeConversation
+        })
+        return
+      }
+
+      try {
+        // Use the original message text from the error
+        const originalMessage = failedMessage.error.originalMessage
+
+        const newConversation = await chatManager.resendMessage(
+          {
+            conversationId: activeConversation.id,
+            userInput: originalMessage,
+            highlightedText: failedMessage.highlightedText,
+            highlightId: failedMessage.highlightId,
+            highlightedPageNumber: null, // TODO: store this in error if needed
+            file: fileManager.getFile(),
+            images: [] // TODO: store images in error if needed
+          },
+          failedMessage.id
+        )
+
+        if ('error' in newConversation) {
+          console.error('Error resending message:', newConversation.error)
+          return
+        }
+
+        fileManager.addOrUpdateConversationInHistory(newConversation)
+        setActiveConversation(newConversation)
+      } catch (error) {
+        console.error('Error resending message:', error)
+      }
+    },
+    [activeConversation, fileManager, chatManager]
+  )
 
   const handleKeyPress = useCallback(
     async (e: KeyboardEvent<HTMLTextAreaElement>): Promise<void> => {
@@ -176,7 +221,6 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
             onDelete={async (item, idx) => {
               if (!item) return
 
-              console.log('delete', item)
               try {
                 await fileManager.removeConversationFromHistory(item)
                 if (!activeConversation) return
@@ -194,7 +238,11 @@ export function ChatSidebar({ fileManager }: { fileManager: PDFManager }) {
         </div>
         <div className="chat-ctr h-full overflow-auto">
           {activeConversation ? (
-            <Conversation key={activeConversation.id} messages={activeConversation.messages} />
+            <Conversation
+              key={activeConversation.id}
+              messages={activeConversation.messages}
+              onResend={handleResendMessage}
+            />
           ) : (
             // <div className="grow flex overflow-visible items-center justify-center text-xs text-gray-400 h-full">
             //   <LyricDisplay track={tracks[activeTrackIndex]} />

@@ -3,13 +3,13 @@ import { IpcMainInvokeEvent } from 'electron'
 import { updateFileDetailsInDb } from '../db/fileUtils'
 import { tokenizer } from '../constants'
 
-export function updateFileDetails(
+export async function updateFileDetails(
   _event: IpcMainInvokeEvent,
   path: string,
   is_url: number,
   name: string,
-  details: FileDetails
-) {
+  details: Partial<FileDetails>
+): Promise<{ error?: string; updatedDetails: FileDetails }> {
   // tokenize the file and save the token length
   if (details.fullText) {
     const start = performance.now()
@@ -17,5 +17,5 @@ export function updateFileDetails(
     console.log(`Encoding took: ${(performance.now() - start) / 1000}ms`)
   }
 
-  return updateFileDetailsInDb({ path, is_url, name, details })
+  return Promise.resolve(updateFileDetailsInDb({ path, is_url, name, details }))
 }

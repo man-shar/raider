@@ -2,6 +2,7 @@ import { ConversationType, HighlightType, NewMessageDetails, RaiderFile } from '
 
 export interface ChatManager {
   sendChatMessage: (details: NewMessageDetails) => Promise<ConversationType>
+  resendMessage: (details: NewMessageDetails, failedMessageId: string) => Promise<ConversationType>
   setLoading: (value: boolean) => void
   getLoading: () => boolean
   subscribeToLoading: (callback: Listener) => Listener
@@ -88,8 +89,27 @@ export function ChatManager(): ChatManager {
     return conversation
   }
 
+  async function resendMessage(details: NewMessageDetails, failedMessageId: string) {
+    if (loading) {
+      throw new Error('Cancel the last chat message to send a new one.')
+    }
+
+    console.log('Resending message', details, failedMessageId)
+    setLoading(true)
+    const conversation = await window.chat.resendMessage(details, failedMessageId)
+
+    if ('error' in conversation) {
+      throw new Error(conversation.error)
+    }
+
+    setLoading(false)
+
+    return conversation
+  }
+
   return {
     sendChatMessage,
+    resendMessage,
     getLoading,
     setLoading,
     subscribeToLoading,

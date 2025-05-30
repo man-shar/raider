@@ -16,11 +16,23 @@ const chat: ChatAPI = {
     return ipcRenderer.invoke('chat:send-message', details)
   },
 
+  resendMessage: (details: NewMessageDetails, failedMessageId: string): Promise<ConversationType> => {
+    return ipcRenderer.invoke('chat:resend-message', details, failedMessageId)
+  },
+
   onChunkReceived: (conversationId: string, callback: (chunk: string) => void) => {
     const eventTargetRef = ipcRenderer.on(conversationId, (_event, value) => callback(value))
 
     return () => {
       eventTargetRef.removeAllListeners(conversationId)
+    }
+  },
+
+  onErrorReceived: (messageId: string, callback: (error: { message: string; canResend: boolean; originalMessage?: string }) => void) => {
+    const eventTargetRef = ipcRenderer.on(`${messageId}:error`, (_event, error) => callback(error))
+
+    return () => {
+      eventTargetRef.removeAllListeners(`${messageId}:error`)
     }
   },
 
@@ -44,7 +56,7 @@ const fileHandler: FileAPI = {
     ipcRenderer.invoke('file:delete-conversation', path, is_url, name, conversationId),
   getFileData: (path: string, is_url: number, name: string) =>
     ipcRenderer.invoke('file:get-file-data', path, is_url, name),
-  updateFileDetails: (path: string, is_url: number, name: string, details: FileDetails) =>
+  updateFileDetails: (path: string, is_url: number, name: string, details: Partial<FileDetails>) =>
     ipcRenderer.invoke('file:update-details', path, is_url, name, details)
 }
 

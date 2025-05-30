@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import sendChatMessage from '../chat-handlers/sendChatMessage'
+import resendChatMessage from '../chat-handlers/resendChatMessage'
 import {
   getProviders,
   getActiveProvider,
@@ -14,7 +15,7 @@ import { closeFile } from '../file-handlers/closeFile'
 import { getOpenFiles } from '../file-handlers/getOpenFiles'
 import { updateFileDetails } from '../file-handlers/updateFileDetails'
 import { createSqlTables } from './setupSQLTables'
-import { providerRegistry } from '../chat-handlers/providers/ProviderRegistry'
+// Provider registry removed - using function-based approach
 import { removeConversation } from '../file-handlers/conversation'
 import { getFileData } from '../file-handlers/getFileData'
 
@@ -22,11 +23,11 @@ export function setupHandlers() {
   // Create database tables if they don't exist
   createSqlTables()
 
-  // Initialize provider registry (this will load settings from DB)
-  providerRegistry.getAllProviders() // Trigger initialization
+  // Provider initialization happens automatically when functions are called
 
   // chat handlers
   ipcMain.handle('chat:send-message', sendChatMessage)
+  ipcMain.handle('chat:resend-message', resendChatMessage)
 
   // Provider and model management
   ipcMain.handle('chat:get-providers', getProviders)

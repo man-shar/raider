@@ -56,7 +56,7 @@ export function PDFPageVirtualizer({
       key: 'Escape',
       callback: (e) => {
         console.log(e.target)
-        if (!e.target.closest('.view-ctr')) return
+        if (!(e.target as Element).closest('.view-ctr')) return
 
         setPeekingState(null)
       }
@@ -126,7 +126,6 @@ export function PDFPageVirtualizer({
                         console.log(
                           `Clicked to go to ${targetPageNumber} from page number: ${index + 1}`
                         )
-                        console.log('middle button pressed!!!')
 
                         setPeekingState({
                           sourcePageNumber: index + 1,

@@ -1,12 +1,19 @@
 import { MessageWithHighlights } from '@types'
 import { forwardRef, Ref, RefCallback, useCallback, useContext, useEffect, useState } from 'react'
 import { MarkdownRenderer } from './MarkdownRenderer'
-import { Modal, SpinningLoader } from '@defogdotai/agents-ui-components/core-ui'
+import { Modal, SpinningLoader, Button } from '@defogdotai/agents-ui-components/core-ui'
 import { AppContext } from '@renderer/context/AppContext'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 
 const Message = forwardRef(
   (
-    { message }: { message: MessageWithHighlights },
+    {
+      message,
+      onResend
+    }: {
+      message: MessageWithHighlights
+      onResend?: (message: MessageWithHighlights) => void
+    },
     ref: Ref<HTMLDivElement> | RefCallback<HTMLDivElement>
   ) => {
     const { statusManager } = useContext(AppContext)
@@ -77,6 +84,13 @@ const Message = forwardRef(
       return processTextContent(message.displayContent ?? message.content)
     })
 
+    // Error state for handling streaming errors
+    const [streamingError, setStreamingError] = useState<{
+      message: string
+      canResend: boolean
+      originalMessage?: string
+    } | null>(null)
+
     // Update content when message changes (non-streaming)
     useEffect(() => {
       if (!message.isLoading) {
@@ -106,13 +120,23 @@ const Message = forwardRef(
             setContent((prev) => prev + processTextContent(chunk))
           }
         }
+
+        const errorCallback = (error: { message: string; canResend: boolean; originalMessage?: string }) => {
+          setStreamingError(error)
+          if (taskId) {
+            statusManager.errorTask(taskId, error.message)
+          }
+        }
+
         const unsubChunk = window.chat.onChunkReceived(message.id, messageCallback)
+        const unsubError = window.chat.onErrorReceived(message.id, errorCallback)
 
         return () => {
           if (taskId) {
             statusManager.completeTask(taskId)
           }
           unsubChunk()
+          unsubError()
         }
       }
 
@@ -141,7 +165,9 @@ const Message = forwardRef(
           </div>
         )}
         <div className="text-xs text-gray-500 mb-2 w-full">
-          <span className="grow">{message.role === 'user' ? 'Question' : 'Response'}</span>
+          <span className="grow">
+            {message.role === 'user' ? 'Question' : message.role === 'error' ? 'Error' : 'Response'}
+          </span>
         </div>
         <button
           className="text-xs self-end text-gray-300 cursor-pointer absolute top-1 right-2"
@@ -150,41 +176,83 @@ const Message = forwardRef(
         >
           Log
         </button>
-        <div className="text-wrap break-all">
-          {message.isLoading && !content ? (
-            <div className="text-wrap break-all text-xs flex flex-row items-center gap-1" ref={ref}>
-              <SpinningLoader classNames="w-4 m-0" /> Loading
+        {/* Error message display */}
+        {(message.error || streamingError) && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-red-700 mb-2">
+                  {message.error?.message || streamingError?.message}
+                </p>
+                {(message.error?.canResend || streamingError?.canResend) && onResend && (
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => {
+                      // Create a temporary message object with the streaming error details
+                      const messageToResend = streamingError 
+                        ? {
+                            ...message,
+                            error: {
+                              message: streamingError.message,
+                              canResend: streamingError.canResend,
+                              originalMessage: streamingError.originalMessage || ''
+                            }
+                          }
+                        : message
+                      onResend(messageToResend)
+                    }} 
+                    className="text-xs"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Resend Message
+                  </Button>
+                )}
+              </div>
             </div>
-          ) : (
-            <div ref={ref as Ref<HTMLDivElement>}>
-              {/* Show message content */}
-              <MarkdownRenderer content={content} />
+          </div>
+        )}
 
-              {/* Show extracted images for user messages */}
-              {extractedImages.length > 0 && (
-                <div className="text-gray-400 border-y p-2 border-gray-200 text-xs relative">
-                  <div className="text-gray-500 mb-2">Images</div>
-                  <div className="flex flex-row flex-wrap gap-2 pb-2">
-                    {extractedImages.map((image, idx) => (
-                      <div
-                        key={idx}
-                        className="relative w-20 h-20 flex items-center justify-center rounded-md border p-1 cursor-pointer hover:border-gray-400 hover:shadow-inner"
-                        onClick={() => handleImageClick(image)}
-                      >
-                        <img
-                          src={image.url}
-                          alt={`Image ${idx + 1}`}
-                          className="rounded-md border border-gray-300 max-w-full"
-                          style={{ maxHeight: '200px' }}
-                        />
-                      </div>
-                    ))}
+        {!message.error && !streamingError && (
+          <div className="text-wrap break-all">
+            {message.isLoading && !content && !message.error && !streamingError ? (
+              <div
+                className="text-wrap break-all text-xs flex flex-row items-center gap-1"
+                ref={ref}
+              >
+                <SpinningLoader classNames="w-4 m-0" /> Loading
+              </div>
+            ) : (
+              <div ref={ref as Ref<HTMLDivElement>}>
+                {/* Show message content */}
+                <MarkdownRenderer content={content} />
+
+                {/* Show extracted images for user messages */}
+                {extractedImages.length > 0 && (
+                  <div className="text-gray-400 border-y p-2 border-gray-200 text-xs relative">
+                    <div className="text-gray-500 mb-2">Images</div>
+                    <div className="flex flex-row flex-wrap gap-2 pb-2">
+                      {extractedImages.map((image, idx) => (
+                        <div
+                          key={idx}
+                          className="relative w-20 h-20 flex items-center justify-center rounded-md border p-1 cursor-pointer hover:border-gray-400 hover:shadow-inner"
+                          onClick={() => handleImageClick(image)}
+                        >
+                          <img
+                            src={image.url}
+                            alt={`Image ${idx + 1}`}
+                            className="rounded-md border border-gray-300 max-w-full"
+                            style={{ maxHeight: '200px' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <Modal
           open={selectedImage && imageModalOpen ? true : false}
           onCancel={handleCloseImageModal}
@@ -197,7 +265,13 @@ const Message = forwardRef(
   }
 )
 
-export function Conversation({ messages }: { messages: MessageWithHighlights[] }) {
+export function Conversation({
+  messages,
+  onResend
+}: {
+  messages: MessageWithHighlights[]
+  onResend?: (message: MessageWithHighlights) => void
+}) {
   return (
     <div className="text-sm overflow-hidden *:p-2 divide-y">
       {messages
@@ -205,10 +279,10 @@ export function Conversation({ messages }: { messages: MessageWithHighlights[] }
         .map((message, i) => {
           // If this is the last message and it's an assistant message being streamed
           if (i === messages.length - 2 && message.role === 'assistant') {
-            return <Message key={`${message.id}`} message={message} />
+            return <Message key={`${message.id}`} message={message} onResend={onResend} />
           }
 
-          return <Message key={`${message.id}`} message={message} />
+          return <Message key={`${message.id}`} message={message} onResend={onResend} />
         })}
     </div>
   )

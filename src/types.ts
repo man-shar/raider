@@ -16,6 +16,11 @@ export interface MessageWithHighlights {
   highlightedText?: string | null
   highlightId?: string | null
   terminateString?: string
+  error?: {
+    message: string
+    canResend: boolean
+    originalMessage?: string
+  }
 }
 
 export interface ConversationType {
@@ -58,7 +63,7 @@ export interface AIModel {
   provider: string
 }
 
-export type ProviderType = 'openai' | 'anthropic' | 'google' | 'deepseek'
+export type ProviderType = 'openai' | 'anthropic' | 'google'
 
 export interface ProviderSettings {
   apiKey: string
@@ -81,6 +86,7 @@ export interface ProviderConfig {
 
 export interface ChatAPI {
   sendChatMessage: (details: NewMessageDetails) => Promise<ConversationType | { error: string }>
+  resendMessage: (details: NewMessageDetails, failedMessageId: string) => Promise<ConversationType | { error: string }>
   /**
    * Adds a listener for the given `messageId` and calls the `callback`
    * function whenever a chunk of data is received. The callback function
@@ -89,6 +95,13 @@ export interface ChatAPI {
    * Returns a function that can be called to unsubscribe the listener.
    */
   onChunkReceived: (messageId: string, callback: (chunk: string) => void) => () => void
+  /**
+   * Adds a listener for error events for the given `messageId` and calls the `callback`
+   * function whenever an error occurs during message generation.
+   *
+   * Returns a function that can be called to unsubscribe the listener.
+   */
+  onErrorReceived: (messageId: string, callback: (error: { message: string; canResend: boolean; originalMessage?: string }) => void) => () => void
 
   // Provider and model management
   getProviders: () => Promise<ProviderConfig[]>

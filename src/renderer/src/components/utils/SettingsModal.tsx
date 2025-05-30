@@ -25,7 +25,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       // Load provider settings
       const provider = providerSettings.providers.find((p) => p.id === activeProvider)
-      if (provider) {
+      if (provider && provider.settings) {
         setApiKey(provider.settings.apiKey || '')
         setSelectedModel(provider.settings.selectedModel || '')
       }
@@ -40,7 +40,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // When selected provider changes, update the form values
   useEffect(() => {
     const provider = providerSettings.providers.find((p) => p.id === selectedProvider)
-    if (provider) {
+    if (provider && provider.settings) {
       setApiKey(provider.settings.apiKey || '')
       setSelectedModel(provider.settings.selectedModel || '')
       setShowApiKey(false) // Reset show API key when provider changes
@@ -138,7 +138,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 placeholder={
                   models.length ? 'Select a model' : 'Enter API key to see available models'
                 }
-                disabled={!apiKey || models.length === 0}
+                disabled={models.length === 0}
               />
             </div>
           </>
