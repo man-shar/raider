@@ -28,8 +28,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
   const [fileManagers, setFileManagers] = useState<PDFManager[]>(initialFileManagers)
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(
-    localStorage.getItem('selectedFileManager') ||
-      (fileManagers.length ? fileManagers[0].filePath : null)
+    fileManagers.find((d) => d.filePath === localStorage.getItem('selectedFilePath'))
+      ? localStorage.getItem('selectedFilePath')
+      : fileManagers.length
+        ? fileManagers[0].filePath
+        : null
   )
   // Track PDF container width
   const [contentWidth, setContentWidth] = useState<number>(800)
@@ -41,7 +44,7 @@ function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
   }, [selectedFilePath, fileManagers])
 
   useEffect(() => {
-    localStorage.setItem('selectedFileManager', selectedFilePath || '')
+    localStorage.setItem('selectedFilePath', selectedFilePath || '')
   }, [selectedFilePath])
 
   // These are now provided by AppContextProvider
@@ -166,52 +169,54 @@ function App({ initialFileManagers }: { initialFileManagers: PDFManager[] }) {
                 }}
               />
 
-              <div className="files relative z-1 h-screen">
-                {fileManagers.map((mgr, index) => {
-                  const file = mgr.getFile()
+              {fileManagers.length && selectedFilePath && selectedFileManager && (
+                <div className="files relative z-1 h-screen">
+                  {fileManagers.map((mgr, index) => {
+                    const file = mgr.getFile()
 
-                  if (selectedFilePath !== file.path) {
-                    return null
-                  }
+                    if (selectedFilePath !== file.path) {
+                      return null
+                    }
 
-                  // Keep all components but hide non-active ones
-                  return (
-                    <div
-                      key={index}
-                      className={twMerge(
-                        'relative w-full h-screen',
-                        selectedFilePath !== file.path ? 'fixed -top-1000 -left-1000' : ''
-                      )}
-                      aria-hidden={selectedFilePath !== file.path}
-                    >
-                      <PDFDocument
-                        pdfManager={mgr}
-                        width={contentWidth}
-                        onTextExtracted={async (fullText, pageWiseText) => {
-                          try {
-                            const { error, updatedDetails } =
-                              await window.fileHandler.updateFileDetails(
-                                file.path,
-                                file.is_url,
-                                file.name,
-                                {
-                                  fullText,
-                                  pageWiseText
-                                }
-                              )
+                    // Keep all components but hide non-active ones
+                    return (
+                      <div
+                        key={index}
+                        className={twMerge(
+                          'relative w-full h-screen',
+                          selectedFilePath !== file.path ? 'fixed -top-1000 -left-1000' : ''
+                        )}
+                        aria-hidden={selectedFilePath !== file.path}
+                      >
+                        <PDFDocument
+                          pdfManager={mgr}
+                          width={contentWidth}
+                          onTextExtracted={async (fullText, pageWiseText) => {
+                            try {
+                              const { error, updatedDetails } =
+                                await window.fileHandler.updateFileDetails(
+                                  file.path,
+                                  file.is_url,
+                                  file.name,
+                                  {
+                                    fullText,
+                                    pageWiseText
+                                  }
+                                )
 
-                            mgr.updateFile((f) => ({ ...f, details: updatedDetails }))
-                            if (error) throw new Error(error)
-                          } catch (e) {
-                            console.error(e)
-                            message.current.error(e)
-                          }
-                        }}
-                      />
-                    </div>
-                  )
-                })}
-              </div>
+                              mgr.updateFile((f) => ({ ...f, details: updatedDetails }))
+                              if (error) throw new Error(error)
+                            } catch (e) {
+                              console.error(e)
+                              message.current.error(e)
+                            }
+                          }}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
 
               {!selectedFilePath && (
                 <div className="flex mx-auto px-2 w-full max-w-96 items-center justify-center h-full">
