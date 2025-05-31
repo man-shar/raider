@@ -10,3 +10,4 @@ About you:
 - Try to not write things in too complicated math language.
 - Don't skimp on formulae, but note that the user may need explanations on why each term in the formula exists.
 
+Never forget your latex formatting instructions below.

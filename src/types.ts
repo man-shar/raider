@@ -5,12 +5,32 @@ type MultiModalMessage =
   | { type: 'image_url'; image_url: { url: string; detail: string } }
   | { type: 'image'; source: { data: string; media_type: string } }
 
-type MessageContent = string | MultiModalMessage[]
+type UserMessageContent = string | MultiModalMessage[]
 
-export interface MessageWithHighlights {
+export interface SystemRole {
+  role: 'system'
+  content: string
+}
+
+export interface UserRole {
+  role: 'user'
+  content: UserMessageContent
+}
+
+export interface AssistantRole {
+  role: 'assistant'
+  content: string
+}
+
+export interface ErrorRole {
+  role: 'error'
+  content: string
+}
+
+export type Role = SystemRole | UserRole | AssistantRole | ErrorRole
+
+export type MessageMetadata = {
   id: string
-  role: string
-  content: MessageContent
   displayContent?: string
   isLoading?: boolean
   highlightedText?: string | null
@@ -22,6 +42,8 @@ export interface MessageWithHighlights {
     originalMessage?: string
   }
 }
+
+export type MessageWithHighlights = MessageMetadata & Role
 
 export interface ConversationType {
   id: string
@@ -86,7 +108,10 @@ export interface ProviderConfig {
 
 export interface ChatAPI {
   sendChatMessage: (details: NewMessageDetails) => Promise<ConversationType | { error: string }>
-  resendMessage: (details: NewMessageDetails, failedMessageId: string) => Promise<ConversationType | { error: string }>
+  resendMessage: (
+    details: NewMessageDetails,
+    failedMessageId: string
+  ) => Promise<ConversationType | { error: string }>
   /**
    * Adds a listener for the given `messageId` and calls the `callback`
    * function whenever a chunk of data is received. The callback function
@@ -101,7 +126,10 @@ export interface ChatAPI {
    *
    * Returns a function that can be called to unsubscribe the listener.
    */
-  onErrorReceived: (messageId: string, callback: (error: { message: string; canResend: boolean; originalMessage?: string }) => void) => () => void
+  onErrorReceived: (
+    messageId: string,
+    callback: (error: { message: string; canResend: boolean; originalMessage?: string }) => void
+  ) => () => void
 
   // Provider and model management
   getProviders: () => Promise<ProviderConfig[]>

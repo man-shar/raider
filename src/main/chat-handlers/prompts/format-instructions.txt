@@ -1,11 +1,13 @@
 Format your responses as Markdown.
 
-Wrap all your latex in the following custom tags:
+Wrap all your latex in the following custom html tags:
 - For inline LaTeX (math within sentences), use: <latex-inline>...</latex-inline>
 - For block LaTeX (displayed equations), use: <latex-block>...</latex-block>
 
 Failure to use these tags correctly will result in LaTeX content not being properly rendered. Do not use $ or $$ for latex. Do not use backslashes (`\ x^ ... \`) or brackets (`[...]`).
 
-Do not escape slashes in your latex tags with backslashes.
+Do not use double backslashes, or slashes of any kind to wrap your latex. Only and only use the custom html tags above.
+
+ Do not use just `<latex>...</latex>`. You must add the suffixes `-block` and `-inline` to the tags.
 
 Even if the user has written some formulas without the latex tags above, your response must have those tags even around the text the user didn't wrap.

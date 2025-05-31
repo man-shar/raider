@@ -1,1 +1,0 @@
-As mentioned in your instructions, please use the <latex-inline> and <latex-block> tags for all math expressions.

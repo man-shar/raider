@@ -121,7 +121,11 @@ const Message = forwardRef(
           }
         }
 
-        const errorCallback = (error: { message: string; canResend: boolean; originalMessage?: string }) => {
+        const errorCallback = (error: {
+          message: string
+          canResend: boolean
+          originalMessage?: string
+        }) => {
           setStreamingError(error)
           if (taskId) {
             statusManager.errorTask(taskId, error.message)
@@ -186,11 +190,11 @@ const Message = forwardRef(
                   {message.error?.message || streamingError?.message}
                 </p>
                 {(message.error?.canResend || streamingError?.canResend) && onResend && (
-                  <Button 
-                    variant="secondary" 
+                  <Button
+                    variant="secondary"
                     onClick={() => {
                       // Create a temporary message object with the streaming error details
-                      const messageToResend = streamingError 
+                      const messageToResend = streamingError
                         ? {
                             ...message,
                             error: {
@@ -201,7 +205,7 @@ const Message = forwardRef(
                           }
                         : message
                       onResend(messageToResend)
-                    }} 
+                    }}
                     className="text-xs"
                   >
                     <RefreshCw className="w-3 h-3 mr-1" />

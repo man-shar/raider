@@ -1,4 +1,4 @@
-import { streamText, CoreMessage, GenerateTextResult } from 'ai'
+import { streamText, CoreMessage } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
@@ -62,7 +62,7 @@ export const PROVIDERS: Record<ProviderType, InternalProviderConfig> = {
       'gpt-4.1-mini': { input: 0.4, output: 0.6, cachedInput: 0.1 },
       'gpt-4.1-nano': { input: 0.1, output: 0.6, cachedInput: 0.025 }
     },
-    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4']
+    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1-nano']
   },
   anthropic: {
     id: 'anthropic',
@@ -277,6 +277,8 @@ function calculateCost(
 ): number {
   const config = PROVIDERS[providerId]
   const modelCost = config.costConfig[model] || Object.values(config.costConfig)[0]
+
+  console.log(modelCost, cachedTokens, promptTokens, completionTokens)
 
   const cost =
     (promptTokens * modelCost.input +
@@ -503,7 +505,7 @@ export async function startChatCompletion(
     })
 
     // Create blank assistant message for UI
-    const blankAssistantMessage = {
+    const blankAssistantMessage: MessageWithHighlights = {
       role: 'assistant',
       id: newMsgId,
       isLoading: true,
@@ -531,12 +533,23 @@ export async function startChatCompletion(
           }
         }
 
-    // Convert to API messages for streaming (just extract role and content, filter out error messages)
+    // Convert to API messages for streaming (filter out error messages)
     const apiMessages: CoreMessage[] = initialMessages
       .filter((msg) => msg.role !== 'error') // Filter out error messages - AI SDK doesn't support this role
       .map((msg) => ({
-        role: msg.role as 'system' | 'user' | 'assistant',
-        content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+        role: msg.role,
+        content:
+          typeof msg.content === 'string'
+            ? msg.content
+            : msg.content.map((part) => {
+                if (part.type === 'image_url') {
+                  return { type: 'image', image: part.image_url.url }
+                } else if (part.type === 'text') {
+                  return { type: 'text', text: part.text }
+                } else {
+                  return { type: 'image', image: part.source.data }
+                }
+              })
       }))
 
     // Start streaming
@@ -819,7 +832,20 @@ export async function resendMessage(
       .filter((msg) => msg.role !== 'error') // Filter out error messages - AI SDK doesn't support this role
       .map((msg) => ({
         role: msg.role as 'system' | 'user' | 'assistant',
-        content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+        content:
+          msg.role === 'system' || msg.role === 'assistant'
+            ? msg.content
+            : typeof msg.content === 'string'
+              ? msg.content
+              : msg.content.map((part) => {
+                  if (part.type === 'image_url') {
+                    return { type: 'image', image: part.image_url.url }
+                  } else if (part.type === 'text') {
+                    return { type: 'text', text: part.text }
+                  } else {
+                    return { type: 'image', image: part.source.data }
+                  }
+                })
       }))
 
     // Start streaming with updated conversation
