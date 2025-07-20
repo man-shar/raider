@@ -55,6 +55,9 @@ app.whenReady().then(() => {
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+    
+    // Don't block any shortcuts - let the renderer handle them
+    // This allows your custom Cmd+R shortcut to work properly
   })
 
   // IPC test

@@ -262,16 +262,18 @@ export function PDFDocument({
 
   const highlightHovered = useRef<HighlightType | null>(null)
 
-  useKeyDown({ key: 'T', meta: true, callback: toggleToc }, [])
-  useKeyDown({ key: 'H', target: ctrRef, callback: createNewHighlight }, [ctrRef])
-  useKeyDown({ key: 'Enter', target: ctrRef, callback: handleAddHighlightToChatBox }, [ctrRef])
-
-  useKeyDown(
-    {
-      key: 'R',
-      meta: true,
-      callback: () => {
-        if (highlightHovered.current && highlightHovered.current.id) {
+  // Prevent browser refresh when hovering over highlights AND handle the removal
+  useEffect(() => {
+    const handleRemoveHighlight = (e: KeyboardEvent) => {
+      // Check if Ctrl+R (Windows/Linux) or Cmd+R (Mac) is pressed
+      const isRefreshShortcut = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r'
+      
+      if (isRefreshShortcut && highlightHovered.current) {
+        e.preventDefault()
+        e.stopPropagation()
+        
+        // Remove the highlight
+        if (highlightHovered.current.id) {
           try {
             pdfManager.removeHighlight(highlightHovered.current)
           } catch (error) {
@@ -280,9 +282,19 @@ export function PDFDocument({
           }
         }
       }
-    },
-    []
-  )
+    }
+
+    // Add listener at capture phase to intercept before browser handles it
+    window.addEventListener('keydown', handleRemoveHighlight, true)
+    
+    return () => {
+      window.removeEventListener('keydown', handleRemoveHighlight, true)
+    }
+  }, [])
+
+  useKeyDown({ key: 'T', meta: true, callback: toggleToc }, [])
+  useKeyDown({ key: 'H', target: ctrRef, callback: createNewHighlight }, [ctrRef])
+  useKeyDown({ key: 'Enter', target: ctrRef, callback: handleAddHighlightToChatBox }, [ctrRef])
 
   useEffect(() => {
     if (!ctrRef) return () => {}
